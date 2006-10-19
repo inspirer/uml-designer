@@ -1,0 +1,19 @@
+
+  + завернуть CS_* в Uml* 
+  + синхронизация модели
+
+  + "changed" server into UmlItem
+  + syncronization of UmlModel with 
+  + selection of members, moving across classes
+
+  + add member to qualifier
+  * selection of GuiMembers
+  + ConnectionStateQuadric.CheckIntersection
+  + ConnectionStateQuadric.remove_quadric_loops
+  + Add member, remove member
+  + Add class to model, etc.
+  + support delegates, properties, etc.
+  + scroll decorator
+
+  ! when qualifier resizes, connections must be refreshed
+  ! menu bugs

@@ -1,0 +1,1178 @@
+##########################################################################
+#   C# phrase structure grammar 
+#	REQUIRES: lapg 1.2.1+
+#   grammar compiler: http://lapg.sf.net/ or http://gryaznov.net
+#
+#	From: C# Language specification Final Draft - October 2002 (by ECMA TC39/TG2)
+
+# TODO: unsafe code
+
+.maxtoken    4096
+.getsym      "chr = buff[l++]"
+.positioning "offset"
+.class       "parser"
+.namespace   "UMLDes.CSharp"
+.lang        "cs"
+.lexemend    "on"
+
+# Vocabulary
+
+# Identificators
+
+identifier(string) : /@?[a-zA-Z_][A-Za-z_0-9]*/ -1   { @ = new System.String(AE.GetChars(token,0,lapg_size-1)); break; }
+
+# literals
+
+Licon:      /([1-9][0-9]*|0[0-7]*|0[xX][0-9a-fA-F]+)([uU](l|L|ll|LL)?|(l|L|ll|LL)[uU]?)?/ { @ = new System.String(AE.GetChars(token,0,lapg_size-1)); break; }
+
+Lfcon:		/([0-9]*\.[0-9]+|[0-9]+\.)([eE][+-]?[0-9]+)?[flFL]?/
+Lfcon:		/[0-9]+[eE][+-]?[0-9]+[flFL]?|[0-9]+[fF]/
+Lfcon:		/0[xX]([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.?)[pP][+-]?[0-9]+[flFL]?/ { @ = new System.String(AE.GetChars(token,0,lapg_size-1)); break; }
+
+Lscon:      /@"[^"]*"/
+Lscon:      /L?"([^"\\]|\\(['"?\\abfnrtv]|x[0-9a-fA-F]+|[0-7]([0-7][0-7]?)?))*"/          { @ = new System.String(AE.GetChars(token,0,lapg_size-1)); break; }
+Lccon:		/L?'([^\n\\']|\\(['"?\\abfnrtv]|x[0-9a-fA-F]+|[0-7]([0-7][0-7]?)?))+'/       { @ = new System.String(AE.GetChars(token,0,lapg_size-1)); break; }
+
+# keywords
+
+Labstract:	/abstract/        { @ = "abstract"; break; }
+Las:		/as/              { @ = "as"; break; }
+Lbase:		/base/            { @ = "base"; break; }
+Lbool:		/bool/            { @ = "bool"; break; }
+Lbreak:		/break/           { @ = "break"; break; }
+Lbyte:		/byte/            { @ = "byte"; break; }
+Lcase:		/case/            { @ = "case"; break; }
+Lcatch:		/catch/           { @ = "catch"; break; }
+Lchar:		/char/            { @ = "char"; break; }
+Lchecked:	/checked/         { @ = "checked"; break; }
+Lclass:		/class/           { @ = "class"; break; }
+Lconst:		/const/           { @ = "const"; break; }
+Lcontinue:	/continue/        { @ = "continue"; break; }
+Ldecimal:	/decimal/         { @ = "decimal"; break; }
+Ldefault:	/default/         { @ = "default"; break; }
+Ldelegate:	/delegate/        { @ = "delegate"; break; }
+Ldo:		/do/              { @ = "do"; break; }
+Ldouble:	/double/          { @ = "double"; break; }
+Lelse:		/else/            { @ = "else"; break; }
+Lenum:		/enum/            { @ = "enum"; break; }
+Levent:		/event/           { @ = "event"; break; }
+Lexplicit:	/explicit/        { @ = "explicit"; break; }
+Lextern:	/extern/          { @ = "extern"; break; }
+Lfalse:		/false/           { @ = "false"; break; }
+Lfinally:	/finally/         { @ = "finally"; break; }
+Lfixed:		/fixed/           { @ = "fixed"; break; }
+Lfloat:		/float/           { @ = "float"; break; }
+Lfor:		/for/             { @ = "for"; break; }
+Lforeach:	/foreach/         { @ = "foreach"; break; }
+Lgoto:		/goto/            { @ = "goto"; break; }
+Lif:		/if/              { @ = "if"; break; }
+Limplicit:	/implicit/        { @ = "implicit"; break; }
+Lin:		/in/              { @ = "in"; break; }
+Lint:		/int/             { @ = "int"; break; }
+Linterface:	/interface/       { @ = "interface"; break; }
+Linternal:	/internal/        { @ = "internal"; break; }
+Lis:		/is/              { @ = "is"; break; }
+Llock:		/lock/            { @ = "lock"; break; }
+Llong:		/long/            { @ = "long"; break; }
+Lnamespace:	/namespace/       { @ = "namespace"; break; }
+Lnew:		/new/             { @ = "new"; break; }
+Lnull:		/null/            { @ = "null"; break; }
+Lobject:	/object/          { @ = "object"; break; }
+Loperator:	/operator/        { @ = "operator"; break; }
+Lout:		/out/             { @ = "out"; break; }
+Loverride:	/override/        { @ = "override"; break; }
+Lparams:	/params/          { @ = "params"; break; }
+Lprivate:	/private/         { @ = "private"; break; }
+Lprotected:	/protected/       { @ = "protected"; break; }
+Lpublic:	/public/          { @ = "public"; break; }
+Lreadonly:	/readonly/        { @ = "readonly"; break; }
+Lref:		/ref/             { @ = "ref"; break; }
+Lreturn:	/return/          { @ = "return"; break; }
+Lsbyte:		/sbyte/           { @ = "sbyte"; break; }
+Lsealed:	/sealed/          { @ = "sealed"; break; }
+Lshort:		/short/           { @ = "short"; break; }
+Lsizeof:	/sizeof/          { @ = "sizeof"; break; }
+Lstackalloc:/stackalloc/      { @ = "stackalloc"; break; }
+Lstatic:	/static/          { @ = "static"; break; }
+Lstring:	/string/          { @ = "string"; break; }
+Lstruct:	/struct/          { @ = "struct"; break; }
+Lswitch:	/switch/          { @ = "switch"; break; }
+Lthis:		/this/            { @ = "this"; break; }
+Lthrow:		/throw/           { @ = "throw"; break; }
+Ltrue:		/true/            { @ = "true"; break; }
+Ltry:		/try/             { @ = "try"; break; }
+Ltypeof:	/typeof/          { @ = "typeof"; break; }
+Luint:		/uint/            { @ = "uint"; break; }
+Lulong:		/ulong/           { @ = "ulong"; break; }
+Lunchecked:	/unchecked/       { @ = "unchecked"; break; }
+Lunsafe:	/unsafe/          { @ = "unsafe"; break; }
+Lushort:	/ushort/          { @ = "ushort"; break; }
+Lusing:		/using/           { @ = "using"; break; }
+Lvirtual:	/virtual/         { @ = "virtual"; break; }
+Lvoid:		/void/            { @ = "void"; break; }
+Lvolatile:	/volatile/        { @ = "volatile"; break; }
+Lwhile:		/while/           { @ = "while"; break; }
+
+# end of Keywords
+
+'{':        /{/	            \ @ = "{"; break;
+'}':		/}/             \ @ = "}"; break;
+'[':		/\[/            { @ = "["; break; }
+']':		/\]/            { @ = "]"; break; }
+'(':		/\(/            { @ = "("; break; }
+')':		/\)/            { @ = ")"; break; }
+'.':		/\./            { @ = "."; break; }
+',':		/,/             { @ = ","; break; }
+':':		/:/             { @ = ":"; break; }
+';':		/;/             { @ = ";"; break; }
+'+':		/+/             { @ = "+"; break; }
+'-':		/-/             { @ = "-"; break; }
+'*':		/*/             { @ = "*"; break; }
+'/':		/\//            { @ = "/"; break; }
+'%':		/%/             { @ = "%"; break; }
+'&':		/&/             { @ = "&"; break; }
+'|':		/\|/            { @ = "|"; break; }
+'^':		/^/             { @ = "^"; break; }
+'!':		/!/             { @ = "!"; break; }
+'~':		/~/             { @ = "~"; break; }
+'=':		/=/             { @ = "="; break; }
+'<':		/</             { @ = "<"; break; }
+'>':		/>/             { @ = ">"; break; }
+'?':		/?/             { @ = "?"; break; }
+'++':		/\+\+/          { @ = "++"; break; }
+'--':		/--/            { @ = "--"; break; }
+'&&':		/&&/            { @ = "&&"; break; }
+'||':		/\|\|/          { @ = "||"; break; }
+'<<':		/<</            { @ = "<<"; break; }
+'>>':		/>>/            { @ = ">>"; break; }
+'==':		/==/            { @ = "=="; break; }
+'!=':		/!=/            { @ = "!="; break; }
+'<=':		/<=/            { @ = "<="; break; }
+'>=':		/>=/            { @ = ">="; break; }
+'+=':		/+=/            { @ = "+="; break; }
+'-=':		/-=/            { @ = "-="; break; }
+'*=':		/*=/            { @ = "*="; break; }
+'/=':		/\/=/           { @ = "/="; break; }
+'%=':		/%=/            { @ = "%="; break; }
+'&=':		/&=/            { @ = "&="; break; }
+'|=':		/\|=/           { @ = "|="; break; }
+'^=':		/^=/            { @ = "^="; break; }
+'<<=':		/<<=/           { @ = "<<="; break; }
+'>>=':		/>>=/           { @ = ">>="; break; }
+'->':		/->/            { @ = "->"; break; }
+
+# special token to resolve cast or call conflict
+
+cast_token:
+
+comment:	/\/\/\/.*/		\ Make.Comment( new System.String(AE.GetChars(token,3,lapg_size-1)), lapg_n); continue;
+
+_skip:      /\/\/([^\/\n\r].*)?/
+_skip:		/#.*/
+_skip:      /[\t\r\n ]+/    \ continue;
+
+'/*':   /\/\*/          { group = @1;continue; }
+[1]
+anysym1: /[^*]+/		{ continue; }
+anysym1: /*/
+'*/':    /\*\//         { group = @0;continue; }
+
+# Attributes
+
+[]
+
+# Main rule
+
+input (DeclNode) ::
+  = using_directivesopt namespace_member_declarationsopt
+		$$ = rootns = Make.Namespace( null, $using_directivesopt, $namespace_member_declarationsopt, lapg_gg ); break;
+
+  = using_directivesopt attributes
+;
+
+# Modifiers
+
+modifier (int) ::
+  = Lnew												{ $$ = Modifiers.New; break; }
+  = Lpublic												{ $$ = Modifiers.Public; break; }
+  = Lprotected											{ $$ = Modifiers.Protected; break; }
+  = Linternal											{ $$ = Modifiers.Internal; break; }
+  = Lprivate											{ $$ = Modifiers.Private; break; }
+  = Labstract											{ $$ = Modifiers.Abstract; break; }
+  = Lsealed												{ $$ = Modifiers.Sealed; break; }
+  = Lstatic												{ $$ = Modifiers.Static; break; }
+  = Lreadonly											{ $$ = Modifiers.Readonly; break; }
+  = Lvirtual											{ $$ = Modifiers.Virtual; break; }
+  = Loverride											{ $$ = Modifiers.Override; break; }
+  = Lextern												{ $$ = Modifiers.Extern; break; }
+  = Lvolatile											{ $$ = Modifiers.Volatile; break; }
+  = Lunsafe												{ $$ = Modifiers.Unsafe; break; }
+;
+
+modifiers (ModifiersNode) ::
+  = modifier											{ $$ = Make.Modifiers( $modifier, lapg_gg );break; }
+  = modifiers modifier									{ Make.AddModifier( $modifiers, $modifier, @1.offset, lapg_gg );break; }
+;
+
+optsemicolon ::= | ';' ;
+
+# A.1.8 Literals
+
+literal (LiteralNode) ::
+  = Licon												{ $$ = Make.Literal( LiteralNode.Type.Integer, (string)$0, lapg_gg ); break; }
+  = Lfcon												{ $$ = Make.Literal( LiteralNode.Type.Float, (string)$0, lapg_gg ); break; }
+  = Lccon												{ $$ = Make.Literal( LiteralNode.Type.Char, (string)$0, lapg_gg ); break; }
+  = Lscon												{ $$ = Make.Literal( LiteralNode.Type.String, (string)$0, lapg_gg ); break; }
+  = Ltrue												{ $$ = Make.Literal( LiteralNode.Type.Boolean, (string)$0, lapg_gg ); break; }
+  = Lfalse												{ $$ = Make.Literal( LiteralNode.Type.Boolean, (string)$0, lapg_gg ); break; }
+  = Lnull												{ $$ = Make.Literal( LiteralNode.Type.Null, (string)$0, lapg_gg ); break; }
+;
+
+# A.2 Syntactic grammar
+
+# A.2.1 Basic concepts
+
+qualified_identifier (IdentNode) ::
+  = identifier											{ $$ = Make.Ident( $identifier, lapg_gg ); break; }
+  = qualified_identifier '.' identifier					{ Make.AddIdent( $qualified_identifier, "."+$identifier, lapg_gg ); break; }
+;
+
+ID (IdentNode) ::
+  = identifier											{ $$ = Make.Ident( $identifier, lapg_gg ); break; }
+;
+
+
+# A.2.2 Types
+
+type_name (TypeNode) ::
+  = qualified_identifier								{ $$ = Make.TypeName( $qualified_identifier, lapg_gg ); break; }
+;  
+
+type (TypeNode) ::
+  = type_name
+  = builtin_types
+  = array_type
+  = pointer_type
+;
+
+non_array_type (TypeNode) ::
+  = type_name
+  = builtin_types
+  = pointer_type
+;
+
+local_type (TypeNode) ::
+  = primary_expression									{ $$ = Util.type_from_expr( $primary_expression ); break; }
+  = builtin_types
+  = builtin_types rank_specifiers						{ $$ = Make.ListArrayType( $builtin_types, $rank_specifiers, lapg_gg ); break; }
+;
+
+cast_type (TypeNode) ::
+  = builtin_types
+  = cast_type '*'										{ $$ = Make.PointerType( $cast_type, lapg_gg );break; }
+  = cast_type rank_specifier							{ $$ = Make.OneArrayType( $cast_type, $rank_specifier, lapg_gg ); break; }
+;
+
+builtin_types (TypeNode) ::
+  = Lobject												{ $$ = Make.BaseType( BaseTypes._object, lapg_gg );break; }
+  = Lstring												{ $$ = Make.BaseType( BaseTypes._string, lapg_gg );break; }
+  = Lbool												{ $$ = Make.BaseType( BaseTypes._bool, lapg_gg );break; }
+  = Ldecimal											{ $$ = Make.BaseType( BaseTypes._decimal, lapg_gg );break; }
+  = Lfloat												{ $$ = Make.BaseType( BaseTypes._float, lapg_gg );break; }
+  = Ldouble												{ $$ = Make.BaseType( BaseTypes._double, lapg_gg );break; }
+  = integral_type
+  = Lvoid												{ $$ = Make.BaseType( BaseTypes._void, lapg_gg );break; }
+;
+
+integral_type (TypeNode) ::
+  = Lsbyte												{ $$ = Make.BaseType( BaseTypes._sbyte, lapg_gg );break; }
+  = Lbyte												{ $$ = Make.BaseType( BaseTypes._byte, lapg_gg );break; }
+  = Lshort												{ $$ = Make.BaseType( BaseTypes._short, lapg_gg );break; }
+  = Lushort												{ $$ = Make.BaseType( BaseTypes._ushort, lapg_gg );break; }
+  = Lint												{ $$ = Make.BaseType( BaseTypes._int, lapg_gg );break; }
+  = Luint												{ $$ = Make.BaseType( BaseTypes._uint, lapg_gg );break; }
+  = Llong												{ $$ = Make.BaseType( BaseTypes._long, lapg_gg );break; }
+  = Lulong												{ $$ = Make.BaseType( BaseTypes._ulong, lapg_gg );break; }
+  = Lchar												{ $$ = Make.BaseType( BaseTypes._char, lapg_gg );break; }
+;
+
+pointer_type (TypeNode) ::
+  = type '*'											{ $$ = Make.PointerType( $type, lapg_gg );break; }
+;
+
+# A.2.4 Expressions
+
+argument_list (ListNode) ::
+  = argument											{ $$ = Make.List( $argument, lapg_gg ); break; }
+  = argument_list ',' argument							{ Make.AddList( $argument_list, $argument, lapg_gg );break; }
+;
+
+argument (Node) ::
+  = expression
+  = Lref expression										{ $$ = Make.Unary( Kind.Ref, $expression, lapg_gg ); break; }
+  = Lout expression										{ $$ = Make.Unary( Kind.Out, $expression, lapg_gg ); break; }
+;
+
+primary_expression (ExprNode) ::
+  = primary_expression_na
+  = new_array_expression
+;
+
+primary_expression_na (ExprNode) ::
+  = literal
+  = ID
+  = parenthesized
+  = Lthis												{ $$ = Make.Expr( Kind.This, lapg_gg ); break; }
+  = Lbase '.' ID										{ $$ = Make.Unary( Kind.BaseDot, $ID, lapg_gg ); break; }
+  = Lbase '[' expression_list ']'						{ $$ = Make.ExprAndList( Kind.BaseIndex, null, $expression_list, lapg_gg ); break; }
+  = Ltypeof '(' type ')'								{ $$ = Make.TypeAndList( Kind.TypeOf, $type, null, lapg_gg ); break; } 
+  = Lchecked '(' expression ')'							{ $$ = Make.Unary( Kind.Checked, $expression, lapg_gg ); break; }
+  = Lunchecked '(' expression ')'						{ $$ = Make.Unary( Kind.Unchecked, $expression, lapg_gg ); break; }
+  = Lsizeof '(' type ')'								{ $$ = Make.TypeAndList( Kind.SizeOf, $type, null, lapg_gg ); break; } 
+  = primary_expression '++'								{ $$ = Make.Unary( Kind.PostInc, $primary_expression, lapg_gg ); break; }
+  = primary_expression '--'								{ $$ = Make.Unary( Kind.PostDec, $primary_expression, lapg_gg ); break; }
+  = primary_expression '->' ID							{ $$ = Make.Binary( Kind.Arrow, $primary_expression, $ID, lapg_gg ); break; }
+  = primary_expression '.' ID							{ $$ = Make.Binary( Kind.Dot, $primary_expression, $ID, lapg_gg ); break; }
+  = builtin_types '.' ID								{ $$ = Make.ExprAndType( Kind.TypeDot, $ID, $builtin_types, lapg_gg ); break; }
+  = primary_expression '(' argument_listopt ')'			{ $$ = Make.ExprAndList( Kind.Call, $primary_expression, $argument_listopt, lapg_gg ); break; }
+  = primary_expression_na '[' expression_list ']'		{ $$ = Make.ExprAndList( Kind.Index, $primary_expression_na#1, $expression_list, lapg_gg ); break; }
+  = primary_expression_na rank_specifier				{ $$ = Make.TypeExpr( $primary_expression_na, $rank_specifier, lapg_gg ); break; }
+  = object_or_delegate_creation_expression
+;
+
+new_array_expression ::
+  = Lnew non_array_type '[' expression_list ']' rank_specifiersopt array_initializeropt		{ $$ = Make.NewArray( $non_array_type, $expression_list, $rank_specifiersopt, $array_initializeropt, lapg_gg ); break; }
+  = Lnew array_type array_initializer														{ $$ = Make.NewArray( $array_type, null, null, $array_initializer, lapg_gg ); break; }
+;
+
+object_or_delegate_creation_expression ::=
+	Lnew type '(' argument_listopt ')'					{ $$ = Make.TypeAndList( Kind.obj_or_deleg_creation, $type, $argument_listopt, lapg_gg ); break; } 
+;
+
+unary_expression (ExprNode) ::
+  = primary_expression
+  = '+' unary_expression								{ $$ = Make.Unary( Kind.UnPlus, $unary_expression#1, lapg_gg ); break; }
+  = '-' unary_expression								{ $$ = Make.Unary( Kind.UnMinus, $unary_expression#1, lapg_gg ); break; }
+  = '!' unary_expression								{ $$ = Make.Unary( Kind.Not, $unary_expression#1, lapg_gg ); break; }
+  = '~' unary_expression								{ $$ = Make.Unary( Kind.BitNot, $unary_expression#1, lapg_gg ); break; }
+  = '++' unary_expression								{ $$ = Make.Unary( Kind.PreInc, $unary_expression#1, lapg_gg ); break; }
+  = '--' unary_expression								{ $$ = Make.Unary( Kind.PreDec, $unary_expression#1, lapg_gg ); break; }
+  = cast_expression
+;
+
+parenthesized (ExprNode) ::
+  = '(' expression ')'
+		$$ = $1;
+		// HACK	
+		if( CastExpr($expression,lapg_n) ) {
+			// perform reduce
+			for( int e = lapg_rlen[lapg_i]; e > 0; e-- ) lapg_m[lapg_head--].sym = null;
+			lapg_m[++lapg_head] = lapg_gg;
+			lapg_m[lapg_head].state = lapg_state_sym( lapg_m[lapg_head-1].state, lapg_gg.lexem );
+			if( lapg_m[lapg_head].state != -1 ) {
+				// shift cast_token (if possible)
+				lapg_gg.lexem = (int)Tokens.cast_token;
+				lapg_gg.sym = null;
+				lapg_gg.state = lapg_state_sym( lapg_m[lapg_head].state, lapg_gg.lexem );
+				lapg_gg.pos = lapg_gg.endpos = lapg_n.pos;
+				if( lapg_gg.state != -1 )
+					lapg_m[++lapg_head] = lapg_gg;
+			}
+			// skip default reduce code
+			continue; 
+		}
+		break;
+;
+
+cast_expression (ExprNode) ::
+  = parenthesized cast_token unary_expression			{ $$ = Make.ExprAndType( Kind.Cast, $unary_expression, Util.type_from_expr($parenthesized), lapg_gg ); break; }
+  = '(' cast_type ')' unary_expression					{ $$ = Make.ExprAndType( Kind.Cast, $unary_expression, $cast_type, lapg_gg ); break; }
+;
+
+multiplicative_expression (ExprNode) ::
+  = unary_expression
+  = multiplicative_expression '*' unary_expression		{ $$ = Make.Binary( Kind.Mult, $multiplicative_expression#1, $unary_expression, lapg_gg ); break; }
+  = multiplicative_expression '/' unary_expression		{ $$ = Make.Binary( Kind.Div, $multiplicative_expression#1, $unary_expression, lapg_gg ); break; }
+  = multiplicative_expression '%' unary_expression		{ $$ = Make.Binary( Kind.Mod, $multiplicative_expression#1, $unary_expression, lapg_gg ); break; }
+;
+
+additive_expression (ExprNode) ::
+  = multiplicative_expression
+  = additive_expression '+' multiplicative_expression	{ $$ = Make.Binary( Kind.Plus, $additive_expression#1, $multiplicative_expression, lapg_gg ); break; }
+  = additive_expression '-' multiplicative_expression	{ $$ = Make.Binary( Kind.Minus, $additive_expression#1, $multiplicative_expression, lapg_gg ); break; }
+;
+
+shift_expression (ExprNode) ::
+  = additive_expression
+  = shift_expression '<<' additive_expression			{ $$ = Make.Binary( Kind.Shl, $shift_expression#1, $additive_expression, lapg_gg ); break; }
+  = shift_expression '>>' additive_expression			{ $$ = Make.Binary( Kind.Shr, $shift_expression#1, $additive_expression, lapg_gg ); break; }
+;
+
+relational_expression (ExprNode) ::
+  = shift_expression
+  = relational_expression '<' shift_expression			{ $$ = Make.Binary( Kind.Less, $relational_expression#1, $shift_expression, lapg_gg ); break; }
+  = relational_expression '>' shift_expression			{ $$ = Make.Binary( Kind.Greater, $relational_expression#1, $shift_expression, lapg_gg ); break; }
+  = relational_expression '<=' shift_expression			{ $$ = Make.Binary( Kind.LessEq, $relational_expression#1, $shift_expression, lapg_gg ); break; }
+  = relational_expression '>=' shift_expression			{ $$ = Make.Binary( Kind.GreaterEq, $relational_expression#1, $shift_expression, lapg_gg ); break; }
+  = relational_expression Lis type						{ $$ = Make.ExprAndType( Kind.Is, $relational_expression#1, $type, lapg_gg ); break; }
+  = relational_expression Las type						{ $$ = Make.ExprAndType( Kind.As, $relational_expression#1, $type, lapg_gg ); break; }
+;
+
+equality_expression (ExprNode) ::
+  = relational_expression
+  = equality_expression '==' relational_expression		{ $$ = Make.Binary( Kind.Equal, $equality_expression#1, $relational_expression, lapg_gg ); break; }
+  = equality_expression '!=' relational_expression		{ $$ = Make.Binary( Kind.NotEqual, $equality_expression#1, $relational_expression, lapg_gg ); break; }
+;
+
+and_expression (ExprNode) ::
+  = equality_expression
+  = and_expression '&' equality_expression				{ $$ = Make.Binary( Kind.And, $and_expression#1, $equality_expression, lapg_gg ); break; }
+;
+
+exclusive_or_expression (ExprNode) ::
+  = and_expression
+  = exclusive_or_expression '^' and_expression			{ $$ = Make.Binary( Kind.Xor, $exclusive_or_expression#1, $and_expression, lapg_gg ); break; }
+;
+
+inclusive_or_expression (ExprNode) ::
+  = exclusive_or_expression
+  = inclusive_or_expression '|' exclusive_or_expression				{ $$ = Make.Binary( Kind.Or, $inclusive_or_expression#1, $exclusive_or_expression, lapg_gg ); break; }
+;
+
+conditional_and_expression (ExprNode) ::
+  = inclusive_or_expression
+  = conditional_and_expression '&&' inclusive_or_expression			{ $$ = Make.Binary( Kind.AndAnd, $conditional_and_expression#1, $inclusive_or_expression, lapg_gg ); break; }
+;
+
+conditional_or_expression (ExprNode) ::
+  = conditional_and_expression
+  = conditional_or_expression '||' conditional_and_expression		{ $$ = Make.Binary( Kind.OrOr, $conditional_or_expression#1, $conditional_and_expression, lapg_gg ); break; }
+;
+
+conditional_expression (ExprNode) ::
+  = conditional_or_expression
+  = conditional_or_expression '?' expression ':' expression			{ $$ = Make.Triplex( $conditional_or_expression, $expression#0, $expression#1, lapg_gg ); break; }
+;
+
+assignment (ExprNode) ::
+  = unary_expression assignment_operator expression					{ $$ = Make.Assign( $assignment_operator, $unary_expression, $expression, lapg_gg ); break; }
+;
+
+assignment_operator (Kind) ::=
+	  '='												{ $$ = (int)Kind.Assign; break; }
+	| '+='												{ $$ = (int)Kind.PlusEq; break; }
+	| '-='												{ $$ = (int)Kind.MinusEq; break; }
+	| '*='												{ $$ = (int)Kind.MultEq; break; }
+	| '/='												{ $$ = (int)Kind.DivEq; break; }
+	| '%='												{ $$ = (int)Kind.ModEq; break; }
+	| '&='												{ $$ = (int)Kind.AndEq; break; }
+	| '|='												{ $$ = (int)Kind.OrEq; break; }
+	| '^='												{ $$ = (int)Kind.XorEq; break; }
+	| '<<='												{ $$ = (int)Kind.ShlEq; break; }
+	| '>>='												{ $$ = (int)Kind.ShrEq; break; }
+;
+
+expression_list (ListNode) ::
+  = expression											{ $$ = Make.List( $expression, lapg_gg ); break; }
+  = expression_list ',' expression						{ Make.AddList( $expression_list, $expression, lapg_gg ); break; }
+;
+
+expression (ExprNode) ::
+  = conditional_expression
+  = assignment
+;
+
+constant_expression (ExprNode) ::
+  = expression
+;
+
+# A.2.5 Statements
+
+statement (StatementNode) ::
+  = ID ':' statement									{ $$ = Make.Statement( Kind.Label, null, $ID, $statement#1, null, null, lapg_gg ); break; }
+  = local_variable_declaration ';'
+  = local_constant_declaration ';'
+  = embedded_statement
+;
+
+embedded_statement (StatementNode) ::
+  = block
+  = statement_expression ';'							{ $$ = Make.Statement( Kind.Expr, $statement_expression, null, null, null, null, lapg_gg ); break; }
+  = ';'													{ $$ = Make.Statement( Kind.Empty, null, null, null, null, null, lapg_gg ); break; }
+
+  = Lif '(' expression ')' embedded_statement								{ $$ = Make.Statement( Kind.If, $expression, null, $embedded_statement#1, null, null, lapg_gg ); break; }
+  = Lif '(' expression ')' embedded_statement Lelse embedded_statement		{ $$ = Make.Statement( Kind.If, $expression, null, $embedded_statement#1, $embedded_statement#2, null, lapg_gg ); break; }
+  = Lswitch '(' expression ')' switch_block									{ $$ = Make.Statement( Kind.Switch, $expression, null, $switch_block, null, null, lapg_gg ); break; }
+  = Lwhile '(' expression ')' embedded_statement							{ $$ = Make.Statement( Kind.While, $expression, null, $embedded_statement#1, null, null, lapg_gg ); break; }
+  = Ldo embedded_statement Lwhile '(' expression ')' ';'					{ $$ = Make.Statement( Kind.DoWhile, $expression, null, $embedded_statement#1, null, null, lapg_gg ); break; }
+  
+  = Lfor '(' for_initializeropt ';' expressionopt ';' statement_expression_listopt ')' embedded_statement
+														{ $$ = Make.Statement( Kind.For, $expressionopt, null, $for_initializeropt, $embedded_statement#1, $statement_expression_listopt, lapg_gg ); break; }
+
+  = Lforeach '(' type ID Lin expression ')' embedded_statement				
+														{ $$ = Make.TypedStatement( Kind.ForEach, $expression, $ID, $embedded_statement#1, null, null, $type, lapg_gg ); break; }
+
+  = Lbreak ';'											{ $$ = Make.Statement( Kind.Break, null, null, null, null, null, lapg_gg ); break; }
+  = Lcontinue ';'										{ $$ = Make.Statement( Kind.Continue, null, null, null, null, null, lapg_gg ); break; }
+  = Lgoto ID ';'										{ $$ = Make.Statement( Kind.Goto, null, $ID, null, null, null, lapg_gg ); break; }
+  = Lgoto Lcase constant_expression ';'					{ $$ = Make.Statement( Kind.GotoCase, $constant_expression, null, null, null, null, lapg_gg ); break; }
+  = Lgoto Ldefault ';'									{ $$ = Make.Statement( Kind.GotoDefault, null, null, null, null, null, lapg_gg ); break; }
+  = Lreturn expressionopt ';'							{ $$ = Make.Statement( Kind.Return, $expressionopt, null, null, null, null, lapg_gg ); break; }
+  = Lthrow expressionopt ';'							{ $$ = Make.Statement( Kind.Throw, $expressionopt, null, null, null, null, lapg_gg ); break; }
+
+  = try_statement
+  = Llock '(' expression ')' embedded_statement			{ $$ = Make.Statement( Kind.Lock, $expression, null, $embedded_statement#1, null, null, lapg_gg ); break; }
+  = Lusing '(' resource_acquisition ')' embedded_statement
+														{ $$ = Make.Statement( Kind.UsingSt, null, null, $resource_acquisition, $embedded_statement#1, null, lapg_gg ); break; }
+  = Lunsafe block										{ $$ = Make.Statement( Kind.Unsafe, null, null, $block, null, null, lapg_gg ); break; }
+  = Lchecked block										{ $$ = Make.Statement( Kind.CheckedSt, null, null, $block, null, null, lapg_gg ); break; }
+  = Lunchecked block									{ $$ = Make.Statement( Kind.UncheckedSt, null, null, $block, null, null, lapg_gg ); break; }
+;
+
+block (StatementNode) ::
+  = '{' statementsopt '}'								{ $$ = Make.Statement( Kind.Block, null, null, null, null, $statementsopt, lapg_gg ); break; }
+;
+
+statements (ListNode) ::
+  = statement											{ $$ = Make.List( $statement, lapg_gg ); break; }
+  = statements statement								{ Make.AddList( $statements, $statement, lapg_gg ); break; }
+;
+
+local_variable_declaration (StatementNode) ::
+  = local_type variable_declarators						{ $$ = Make.TypedStatement( Kind.VarDecl, null, null, null, null, $variable_declarators, $local_type, lapg_gg ); break; }
+;
+
+local_constant_declaration (StatementNode) ::
+  = Lconst type constant_declarators					{ $$ = Make.TypedStatement( Kind.ConstDecl, null, null, null, null, $constant_declarators, $type, lapg_gg ); break; }
+;
+
+constant_declarators (ListNode) ::
+  = constant_declarator									{ $$ = Make.List( $constant_declarator, lapg_gg ); break; }
+  = constant_declarators ',' constant_declarator		{ Make.AddList( $constant_declarators, $constant_declarator, lapg_gg );break; }
+;
+
+constant_declarator (ConstantNode) ::
+  = ID '=' constant_expression							{ $$ = Make.Constant( $ID, $constant_expression, lapg_gg ); break; }
+;
+
+statement_expression (ExprNode) ::
+  = primary_expression '(' argument_listopt ')'			{ $$ = Make.ExprAndList( Kind.Call, $primary_expression, $argument_listopt, lapg_gg ); break; }
+  = object_or_delegate_creation_expression
+  = assignment
+  = primary_expression '++'								{ $$ = Make.Unary( Kind.PostInc, $primary_expression, lapg_gg ); break; }
+  = primary_expression '--'								{ $$ = Make.Unary( Kind.PostDec, $primary_expression, lapg_gg ); break; }
+  = '++' unary_expression								{ $$ = Make.Unary( Kind.PreInc, $unary_expression, lapg_gg ); break; }
+  = '--' unary_expression								{ $$ = Make.Unary( Kind.PreDec, $unary_expression, lapg_gg ); break; }
+;
+
+switch_block (StatementNode) ::
+  = '{' switch_sectionsopt '}'							{ $$ = Make.Statement( Kind.Block, null, null, null, null, $switch_sectionsopt, lapg_gg ); break; }
+;
+
+switch_sections (ListNode) ::
+  = switch_section										{ $$ = Make.List( $switch_section, lapg_gg ); break; }
+  = switch_sections switch_section						{ Make.AddList( $switch_sections, $switch_section, lapg_gg );break; }
+;
+
+switch_section (StatementNode) ::
+  = switch_labels statements_as_one						{ $$ = Make.Statement( Kind.SwitchSect, null, null, $statements_as_one, null, $switch_labels, lapg_gg ); break; }
+;
+
+statements_as_one (StatementNode) ::
+  = statements											{ $$ = Make.Statement( Kind.StmtList, null, null, null, null, $statements, lapg_gg ); break; }
+;
+
+switch_labels (ListNode) ::
+  = switch_label										{ $$ = Make.List( $switch_label, lapg_gg ); break; }
+  = switch_labels switch_label							{ Make.AddList( $switch_labels, $switch_label, lapg_gg );break; }
+;
+
+switch_label (StatementNode) ::
+  = Lcase constant_expression ':'						{ $$ = Make.Statement( Kind.CaseLabel, $constant_expression, null, null, null, null, lapg_gg ); break; }
+  = Ldefault ':'										{ $$ = Make.Statement( Kind.Default, null, null, null, null, null, lapg_gg ); break; }
+;
+
+for_initializer (StatementNode) ::
+  = local_variable_declaration
+  = statement_expression_list							{ $$ = Make.Statement( Kind.ExprList, null, null, null, null, $statement_expression_list, lapg_gg ); break; }
+;
+
+statement_expression_list (ListNode) ::
+  = statement_expression								{ $$ = Make.List( $statement_expression, lapg_gg ); break; }
+  = statement_expression_list ',' statement_expression	{ Make.AddList( $statement_expression_list, $statement_expression, lapg_gg ); break; }
+;
+
+try_statement (StatementNode) ::
+  = Ltry block catch_finally							{ $$ = Make.Statement( Kind.Try, null, null, $block, null, $catch_finally, lapg_gg ); break; }
+;
+
+catch_finally (ListNode) ::
+  = catch_clauses
+  = finally_clause										{ $$ = Make.List( $finally_clause, lapg_gg ); break; }
+  = catch_clauses finally_clause						{ Make.AddList( $catch_clauses, $finally_clause, lapg_gg );break; }
+;
+
+catch_clauses (ListNode) ::
+  = specific_catch_clauses
+  = specific_catch_clauses general_catch_clause			{ Make.AddList( $specific_catch_clauses, $general_catch_clause, lapg_gg );break; }
+  = general_catch_clause								{ $$ = Make.List( $general_catch_clause, lapg_gg ); break; }
+;
+
+specific_catch_clauses (ListNode) ::
+  = specific_catch_clause								{ $$ = Make.List( $specific_catch_clause, lapg_gg ); break; }
+  = specific_catch_clauses specific_catch_clause		{ Make.AddList( $specific_catch_clauses, $specific_catch_clause, lapg_gg );break; }
+;
+
+specific_catch_clause (StatementNode) ::
+  = Lcatch '(' type_name IDopt ')' block		
+														{ $$ = Make.TypedStatement( Kind.Catch, null, $IDopt, $block, null, null, $type_name, lapg_gg ); break; }
+;
+
+general_catch_clause (StatementNode) ::
+  = Lcatch block										{ $$ = Make.TypedStatement( Kind.Catch, null, null, $block, null, null, null, lapg_gg ); break; }
+;
+
+finally_clause (StatementNode) ::
+  = Lfinally block										{ $$ = Make.Statement( Kind.Finally, null, null, $block, null, null, lapg_gg ); break; }
+;
+
+resource_acquisition (StatementNode) ::
+  = local_variable_declaration
+  = expression											{ $$ = Make.Statement( Kind.Expr, $expression, null, null, null, null, lapg_gg ); break; }
+;
+
+# Declaration level
+
+# Namespaces
+
+namespace_declaration ::
+  = Lnamespace qualified_identifier '{' using_directivesopt namespace_member_declarationsopt '}' optsemicolon
+		$$ = Make.Namespace( $qualified_identifier, $using_directivesopt, $namespace_member_declarationsopt, lapg_gg ); break;
+;
+
+using_directives (ListNode) ::
+  = using_directive										{ $$ = Make.List( $using_directive, lapg_gg ); break; }
+  = using_directives using_directive					{ Make.AddList( $using_directives, $using_directive, lapg_gg );break; }
+;
+
+using_directive (Node) ::
+  = Lusing ID '=' qualified_identifier ';'				{ $$ = Make.Using( Kind.UsingAlias, $ID, $qualified_identifier, lapg_gg ); break; }
+  = Lusing qualified_identifier ';'						{ $$ = Make.Using( Kind.UsingDir, null, $qualified_identifier, lapg_gg ); break; }
+;
+
+namespace_member_declarations (ListNode) ::
+  = namespace_member_declaration								{ $$ = Make.List( $namespace_member_declaration, lapg_gg ); break; }
+  = namespace_member_declarations namespace_member_declaration	{ Make.AddList( $namespace_member_declarations, $namespace_member_declaration, lapg_gg );break; }
+;
+
+namespace_member_declaration (Node) ::
+  = namespace_declaration
+  = type_declaration
+;
+
+type_declaration (DeclNode) ::
+  = class_declaration
+  = struct_declaration
+  = interface_declaration
+  = enum_declaration
+  = delegate_declaration
+;
+
+# A.2.6 Classes
+
+class_declaration ::
+  = attributesopt modifiersopt Lclass ID class_baseopt class_body optsemicolon
+		$$ = Make.Class( Kind.Class, $attributesopt, $modifiersopt, $ID, $class_baseopt, $class_body, lapg_gg ); break;
+;
+
+class_base (ListNode) ::
+  = ':' type_list										{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+type_list (ListNode) ::
+  = qualified_identifier								{ $$ = Make.List( $qualified_identifier, lapg_gg ); break; }
+  = type_list ',' qualified_identifier					{ Make.AddList( $type_list, $qualified_identifier, lapg_gg );break; }
+;
+
+class_body (ListNode) ::
+  = '{' class_member_declarationsopt '}'				{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+class_member_declarations (ListNode) ::
+  = class_member_declaration							{ $$ = Make.List( $class_member_declaration, lapg_gg ); break; }
+  = class_member_declarations class_member_declaration	{ Make.AddList( $class_member_declarations, $class_member_declaration, lapg_gg );break; }
+;
+
+class_member_declaration (DeclNode) ::
+  = constant_declaration
+  = field_declaration
+  = method_declaration
+  = property_declaration
+  = event_declaration
+  = indexer_declaration
+  = operator_declaration
+  = constructor_declaration
+  = destructor_declaration
+  = type_declaration
+;
+
+# Constant/Field
+
+constant_declaration (FieldsDecl) ::
+  = attributesopt const_modifiers type constant_declarators ';'
+		$$ = Make.Fields( Kind.Const, $attributesopt, $const_modifiers, $type, $constant_declarators, lapg_gg ); break;
+;
+
+const_modifiers (ModifiersNode) ::
+  = Lconst												{ $$ = Make.Modifiers( (int)Modifiers.Const, lapg_gg );break; }
+  = modifiers Lconst									{ Make.AddModifier( $modifiers, (int)Modifiers.Const, @1.offset, lapg_gg );break; }
+;
+
+field_declaration (FieldsDecl) ::
+  = attributesopt modifiersopt type variable_declarators ';'
+		$$ = Make.Fields( Kind.Fields, $attributesopt, $modifiersopt, $type, $variable_declarators, lapg_gg ); break;
+;
+
+variable_declarators (ListNode) ::
+  = variable_declarator									{ $$ = Make.List( $variable_declarator, lapg_gg ); break; }
+  = variable_declarators ',' variable_declarator		{ Make.AddList( $variable_declarators, $variable_declarator, lapg_gg );break; }
+;
+
+variable_declarator (VariableNode) ::
+  = ID													{ $$ = Make.Variable( $ID, null, lapg_gg ); break; }
+  = ID '=' variable_initializer							{ $$ = Make.Variable( $ID, $variable_initializer, lapg_gg ); break; }
+;
+
+variable_initializer (InitializerNode) ::
+  = expression											{ $$ = Make.Initializer( Kind.ExprInit, $expression, null, lapg_gg ); break; }
+  = array_initializer									{ $$ = Make.Initializer( Kind.ArrayInit, null, $array_initializer, lapg_gg ); break; }
+;
+
+# Method
+
+method_declaration (MethodDecl) ::
+  = attributesopt modifiersopt type member_name '(' formal_parameter_listopt ')' optional_body
+		$$ = Make.Method( Kind.Method, $attributesopt, $modifiersopt, $member_name, $type, $formal_parameter_listopt, $optional_body, null, lapg_gg );break;
+;
+
+member_name (IdentNode) ::
+  = identifier											{ $$ = Make.Ident( $identifier, lapg_gg ); break; }
+  = qualified_identifier '.' identifier					{ Make.AddIdent( $qualified_identifier, "."+$identifier, lapg_gg ); break; }
+;
+
+formal_parameter_list (ListNode) ::
+  = fixed_parameters
+  = fixed_parameters ',' parameter_array				{ Make.AddList( $fixed_parameters, $parameter_array, lapg_gg );break; }
+  = parameter_array										{ $$ = Make.List( $parameter_array, lapg_gg ); break; }
+;
+
+fixed_parameters (ListNode) ::
+  = fixed_parameter										{ $$ = Make.List( $fixed_parameter, lapg_gg ); break; }
+  = fixed_parameters ',' fixed_parameter				{ Make.AddList( $fixed_parameters, $fixed_parameter, lapg_gg );break; }
+;
+
+fixed_parameter (ParameterNode) ::
+  = attributesopt parameter_modifieropt type ID
+		$$ = Make.Parameter( $attributesopt, $parameter_modifieropt, $type, $ID, lapg_gg ); break;
+;
+
+parameter_modifier (ModifiersNode) ::
+  = Lref												{ $$ = Make.Modifiers( (int)Modifiers.Ref, lapg_gg );break; }
+  = Lout												{ $$ = Make.Modifiers( (int)Modifiers.Out, lapg_gg );break; }
+;
+
+params_modifier (ModifiersNode) ::
+  = Lparams												{ $$ = Make.Modifiers( (int)Modifiers.Params, lapg_gg );break; }
+;
+
+parameter_array (ParameterNode) ::
+  = attributesopt params_modifier array_type ID
+		$$ = Make.Parameter( $attributesopt, $params_modifier, $array_type, $ID, lapg_gg ); break;
+;
+
+# Property/Event/Indexer
+
+property_declaration (DeclNode) ::
+  = attributesopt modifiersopt type member_name '{' accessor_declarations '}'
+		$$ = Make.Property( $attributesopt, $modifiersopt, $type, $member_name, $accessor_declarations, lapg_gg ); break;
+;
+
+accessor_declarations (ListNode) ::
+  = accessor_declaration accessor_declarationopt		
+		$$ = Make.List( $accessor_declaration, lapg_gg );
+		if( $accessor_declarationopt != null )
+			Make.AddList( $accessor_declarations, $accessor_declarationopt, lapg_gg );break;
+;
+
+accessor_declaration (AccessorNode) ::
+  = attributesopt ID optional_body						{ $$ = Make.Accessor( $attributesopt, $ID, $optional_body, lapg_gg ); break; }
+;
+
+optional_body (StatementNode) ::
+  = block
+  = ';'													{ $$ = null; break; }
+;
+
+event_declaration (DeclNode) ::
+  = attributesopt modifiersopt Levent type variable_declarators ';'
+		$$ = Make.Event( Kind.EventVars, $attributesopt, $modifiersopt, $type, null, null, $variable_declarators, lapg_gg ); break;
+
+  = attributesopt modifiersopt Levent type member_name '{' accessor_declarations '}'
+		$$ = Make.Event( Kind.EventWithAccessors, $attributesopt, $modifiersopt, $type, $member_name, $accessor_declarations, null, lapg_gg ); break;
+;
+
+indexer_declaration (DeclNode) ::
+  = attributesopt modifiersopt type indexer_name '[' formal_parameter_list ']' '{' accessor_declarations '}'
+		$$ = Make.Indexer( $attributesopt, $modifiersopt, $type, $indexer_name, $formal_parameter_list, $accessor_declarations, lapg_gg ); break;
+;
+
+indexer_name (IdentNode) ::
+  = Lthis												{ $$ = Make.Ident( "this", lapg_gg ); break; }
+  = qualified_identifier '.' Lthis						{ Make.AddIdent( $qualified_identifier, ".this", lapg_gg ); break; }
+;
+
+# Operators
+
+operator_declaration (MethodDecl) ::
+  = attributesopt modifiersopt operator_declarator optional_body
+		$$ = $operator_declarator;
+		$operator_declarator.attributes = $attributesopt;
+		if( $operator_declarator.modifiers == null )
+			$operator_declarator.modifiers = $modifiersopt;
+		else if( $modifiersopt != null ) {
+			$operator_declarator.modifiers = Make.SumModifiers( $modifiersopt, $operator_declarator.modifiers );
+		}
+		$operator_declarator.body = $optional_body;
+		Make.Pos( ref lapg_gg ); break;
+;
+
+operator_declarator (MethodDecl) ::
+  = unary_binary_operator_declarator
+  = conversion_operator_declarator
+;
+
+simple_parameter (ParameterNode) ::
+  = type ID												{ $$ = Make.Parameter( null, null, $type, $ID, lapg_gg ); break; }
+;		
+
+unary_binary_operator_declarator (MethodDecl) ::
+  = type overloadable_operator_name '(' simple_parameter ')'
+		$$ = Make.Operator( null, $type, $overloadable_operator_name, $simple_parameter, null, lapg_gg ); break;
+
+  = type overloadable_operator_name '(' simple_parameter ',' simple_parameter ')'
+		$$ = Make.Operator( null, $type, $overloadable_operator_name, $simple_parameter#0, $simple_parameter#1, lapg_gg ); break;
+;
+
+overloadable_operator_name (IdentNode) ::=
+	Loperator overloadable_operator						{ $$ = Make.Ident( "operator " + $overloadable_operator, lapg_gg ); break; } ;
+
+overloadable_operator (string) ::=
+	'+' | '-' | 
+	'!' | '~' | '++' | '--' | Ltrue | Lfalse |
+	'*' | '/' | '%' | '&' | '|' | '^' | '<<' | '>>' | '==' | '!=' | '>' | '<' | '>=' | '<=' ;
+
+conversion_operator_declarator (MethodDecl) ::
+  = conversion_modifier Loperator type '(' simple_parameter ')'
+		$$ = Make.Operator( $conversion_modifier, $type, null, $simple_parameter, null, lapg_gg ); break;
+;
+
+conversion_modifier (ModifiersNode) ::
+  = Limplicit											{ $$ = Make.Modifiers( (int)Modifiers.Implicit, lapg_gg );break; }
+  = Lexplicit											{ $$ = Make.Modifiers( (int)Modifiers.Explicit, lapg_gg );break; }
+;
+
+# Constructor/Destructor
+
+constructor_declaration ::
+  = attributesopt modifiersopt ID '(' formal_parameter_listopt ')' constructor_initializeropt optional_body
+		$$ = Make.Method( Kind.Constructor, $attributesopt, $modifiersopt, $ID, null, $formal_parameter_listopt, $optional_body, $constructor_initializeropt, lapg_gg );break;
+;
+
+constructor_initializer (ConstructorInitializerNode) ::
+  = ':' Lbase '(' argument_listopt ')'					{ $$ = Make.ConstructorInitializer( Kind.ThisConstructorInit, $argument_listopt, lapg_gg ); break; }
+  = ':' Lthis '(' argument_listopt ')'					{ $$ = Make.ConstructorInitializer( Kind.BaseConstructorInit, $argument_listopt, lapg_gg ); break; }
+;
+
+destructor_modifier (ModifiersNode) ::
+  = Lextern												{ $$ = Make.Modifiers( (int)Modifiers.Extern, lapg_gg );break; }
+;
+
+destructor_declaration ::
+  = attributesopt destructor_modifieropt '~' ID '(' ')' optional_body
+		$$ = Make.Method( Kind.Destructor, $attributesopt, $destructor_modifieropt, $ID, null, null, $optional_body, null, lapg_gg );break;
+;
+
+# A.2.7 Structs
+
+struct_declaration ::
+  = attributesopt modifiersopt Lstruct ID struct_interfacesopt struct_body optsemicolon
+		$$ = Make.Class( Kind.Struct, $attributesopt, $modifiersopt, $ID, $struct_interfacesopt, $struct_body, lapg_gg ); break;
+;
+
+struct_interfaces (ListNode) ::
+  = ':' type_list										{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+struct_body (ListNode) ::
+  = '{' class_member_declarationsopt '}'				{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+# A.2.8 Arrays
+
+array_type (TypeNode) ::= 
+	non_array_type rank_specifiers						{ $$ = Make.ListArrayType( $non_array_type, $rank_specifiers, lapg_gg ); break; }
+;
+
+rank_specifiers (ListNode) ::
+  = rank_specifier										{ $$ = Make.List( $rank_specifier, lapg_gg ); break; }
+  = rank_specifiers rank_specifier						{ Make.AddList( $rank_specifiers, $rank_specifier, lapg_gg );break; }
+;
+
+rank_specifier (DimSpecNode) ::=
+	'[' dim_separatorsopt ']'							{ $$ = Make.DimSpec( ( $1 == null ) ? 1 : $dim_separatorsopt, lapg_gg ); break; } ;
+
+dim_separators (int) ::
+  = ',' 												{ $$ = 2; break; }
+  = dim_separators ',' 									{ $$ = $dim_separators + 1; break; }
+;
+
+array_initializer (ListNode) ::
+  = '{' variable_initializer_listopt '}'				{ $$ = $variable_initializer_listopt; break; }
+  = '{' variable_initializer_list ',' '}'				{ $$ = $variable_initializer_list; break; }
+;
+
+variable_initializer_list (ListNode) ::
+  = variable_initializer								{ $$ = Make.List( $variable_initializer, lapg_gg ); break; }
+  = variable_initializer_list ',' variable_initializer	{ Make.AddList( $variable_initializer_list, $variable_initializer, lapg_gg ); break; }
+;
+
+# A.2.9 Interfaces
+
+interface_declaration ::
+  = attributesopt modifiersopt Linterface ID interface_baseopt interface_body optsemicolon
+		$$ = Make.Class( Kind.Interface, $attributesopt, $modifiersopt, $ID, $interface_baseopt, $interface_body, lapg_gg ); break;
+;
+
+interface_base (ListNode) ::
+  = ':' type_list										{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+interface_body (ListNode) ::
+  = '{' interface_member_declarationsopt '}'			{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+interface_member_declarations (ListNode) ::
+  = interface_member_declaration									{ $$ = Make.List( $interface_member_declaration, lapg_gg ); break; }
+  = interface_member_declarations interface_member_declaration		{ Make.AddList( $interface_member_declarations, $interface_member_declaration, lapg_gg );break; }
+;
+
+interface_member_declaration (Node) ::
+  = attributesopt iface_member_modifieropt type ID '(' formal_parameter_listopt ')' ';'			
+		$$ = Make.Method( Kind.Method, $attributesopt, $iface_member_modifieropt, $ID, $type, $formal_parameter_listopt, null, null, lapg_gg );break;
+
+  = attributesopt iface_member_modifieropt type ID '{' interface_accessors '}'
+		$$ = Make.Property( $attributesopt, $iface_member_modifieropt, $type, $ID, $interface_accessors, lapg_gg ); break;
+
+  = attributesopt iface_member_modifieropt Levent type ID ';'
+		$$ = Make.Event( Kind.EventWithAccessors, $attributesopt, $iface_member_modifieropt, $type, $ID, null, null, lapg_gg ); break;
+
+  = attributesopt iface_member_modifieropt type iface_indexer_name '[' formal_parameter_list ']' '{' interface_accessors '}'
+		$$ = Make.Indexer( $attributesopt, $iface_member_modifieropt, $type, $iface_indexer_name, $formal_parameter_list, $interface_accessors, lapg_gg ); break;  
+;
+
+iface_indexer_name (IdentNode) ::
+  = Lthis												{ $$ = Make.Ident( "this", lapg_gg ); break; }
+;
+
+iface_member_modifier (ModifiersNode) ::
+  = Lnew												{ $$ = Make.Modifiers( (int)Modifiers.New, lapg_gg );break; }
+;
+
+interface_accessors (ListNode) ::
+  = interface_accessor interface_accessoropt
+		$$ = Make.List( $interface_accessor, lapg_gg );
+		if( $interface_accessoropt != null )
+			Make.AddList( $interface_accessors, $interface_accessoropt, lapg_gg );break;
+;
+
+interface_accessor (AccessorNode) ::
+  = attributesopt ID ';'						{ $$ = Make.Accessor( $attributesopt, $ID, null, lapg_gg ); break; }
+;  
+
+# A.2.10 Enums
+
+enum_declaration ::
+  = attributesopt modifiersopt Lenum ID enum_baseopt enum_body optsemicolon
+		$$ = Make.Enum( $attributesopt, $modifiersopt, $ID, $enum_baseopt, $enum_body, lapg_gg ); break;  
+;
+
+enum_base (TypeNode) ::
+  = ':' integral_type			{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+enum_body (ListNode) ::
+  = '{' enum_member_declarationsopt '}'		{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+  = '{' enum_member_declarations ',' '}'	{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+enum_member_declarations (ListNode) ::
+  = enum_member_declaration									{ $$ = Make.List( $enum_member_declaration, lapg_gg ); break; }
+  = enum_member_declarations ',' enum_member_declaration	{ Make.AddList( $enum_member_declarations, $enum_member_declaration, lapg_gg );break; }
+;
+
+enum_member_declaration (EnumValueNode) ::
+  = attributesopt ID							{ $$ = Make.EnumValue( $attributesopt, $ID, null, lapg_gg ); break; }
+  = attributesopt ID '=' constant_expression	{ $$ = Make.EnumValue( $attributesopt, $ID, $constant_expression, lapg_gg ); break; }
+;
+
+# A.2.11 Delegates
+
+delegate_declaration ::
+  = attributesopt modifiersopt Ldelegate type ID '(' formal_parameter_listopt ')' ';'
+		$$ = Make.Delegate( $attributesopt, $modifiersopt, $ID, $type, $formal_parameter_listopt, lapg_gg ); break;
+;
+
+# A.2.12 Attributes (TODO)
+
+attributes (ListNode) ::
+  = attribute_sect					{ $$ = Make.List( $attribute_sect, lapg_gg ); break; }
+  = attributes attribute_sect		{ Make.AddList( $attributes, $attribute_sect, lapg_gg );break; }
+;
+
+attribute_sect (AttributeSectionNode) ::
+  = '[' attribute_target ':' attribute_list ',' ']'		{ $$ = Make.AttributeSection( $attribute_target, $attribute_list, lapg_gg ); break; }
+  = '[' attribute_target ':' attribute_list ']'			{ $$ = Make.AttributeSection( $attribute_target, $attribute_list, lapg_gg ); break; }
+  = '[' attribute_list ',' ']'							{ $$ = Make.AttributeSection( null, $attribute_list, lapg_gg ); break; }
+  = '[' attribute_list ']'								{ $$ = Make.AttributeSection( null, $attribute_list, lapg_gg ); break; }
+;
+
+attribute_target (IdentNode) ::
+  = identifier											{ $$ = Make.Ident( $identifier, lapg_gg ); break; }
+  = Levent												{ $$ = Make.Ident( "event", lapg_gg ); break; }
+  = Lreturn												{ $$ = Make.Ident( "return", lapg_gg ); break; }
+;
+
+attribute_list (ListNode) ::
+  = attribute											{ $$ = Make.List( $attribute, lapg_gg ); break; }
+  = attribute_list ',' attribute						{ Make.AddList( $attribute_list, $attribute, lapg_gg );break; }
+;
+
+attribute (AttributeNode) ::
+  = attribute_name attribute_argumentsopt				{ $$ = Make.Attribute( $attribute_name, $attribute_argumentsopt, lapg_gg ); break; }
+;
+
+attribute_name (IdentNode) ::
+  = qualified_identifier
+;
+
+attribute_arguments (ListNode) ::
+  = '(' attribute_argument_listopt ')'					{ $$ = $1; Make.Pos( ref lapg_gg ); break; }
+;
+
+attribute_argument_list (ListNode) ::
+  = expression											{ $$ = Make.List( $expression, lapg_gg ); break; }
+  = attribute_argument_list ',' expression				{ Make.AddList( $attribute_argument_list, $expression, lapg_gg );break; }
+;
+
+%%
+
+//#define DEBUG_syntax
+
+using System;
+using System.Collections;
+using System.IO;
+
+using UMLDes.CSharp.Nodes;
+
+%%
+
+// 14.6.6 Cast expressions =======
+// To resolve cast-expression ambiguities, the following rule exists: A sequence of one or
+// more tokens (§9.4) enclosed in parentheses is considered the start of a cast-expression only
+// if at least one of the following are true:
+//	• The sequence of tokens is correct grammar for a type, but not for an expression.
+//  • The sequence of tokens is correct grammar for a type, and the token immediately following
+//	  the closing parentheses is the token “~”, the token “!”, the token “(”, an identifier (§9.4.1),
+//	  a literal (§9.4.4), or any keyword (§9.4.3) except as and is.
+
+private static bool CastExpr( ExprNode expr, lapg_symbol next ) {
+
+	// check if expression can be type
+	if( !Util.CanBeType( expr ) )
+		return false;
+
+	// if expression is only type (contains dim_specifier)
+	if( Util.ContainsDimSpec( expr ) )
+		return true;	
+
+	// Type or Expr
+	switch( (Tokens)next.lexem ) {
+		case Tokens.TILDE:
+		case Tokens.EXCL:
+		case Tokens.LROUNDBRACKET:
+		case Tokens.identifier:
+		case Tokens.Licon:
+		case Tokens.Lfcon:
+		case Tokens.Lscon:
+		case Tokens.Lccon:
+		case Tokens.Lfalse:
+		case Tokens.Ltrue:
+		case Tokens.Lnull:
+			return true;
+		case Tokens.Lis:
+		case Tokens.Las:
+			return false;
+	}
+
+	// keyword
+	if( next.lexem >= (int)Tokens.Labstract && next.lexem <= (int)Tokens.Lwhile )
+		return true;
+
+	return false;
+}
+
+NamespaceDecl rootns;
+byte[] buff;
+int l;
+ArrayList errors = new ArrayList();
+
+void error( string s ) {
+	errors.Add( s );
+}
+
+static byte[] hex = { 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102 };
+
+// escapes all non-ascii127 characters
+private static void string_to_byte_arr( string text, out byte[] dest ) {
+	int i, e, len = text.Length, l = len;
+	char[] list = new char[len+1];
+	text.CopyTo( 0, list, 0, len );
+	for( i = 0; i < len; i++ )
+		if( (int)list[i] >= 0x80 )
+			l += 5;
+	dest = new byte[l+1];
+	for( i = e = 0; i < len; i++ ) {
+		int q = (int)list[i];
+
+		if( q >= 0x80 ) {
+			dest[e++] = 92; dest[e++] = 117;		// \u
+			dest[e++] = hex[q>>12];
+			dest[e++] = hex[(q>>8)&15];
+			dest[e++] = hex[(q>>4)&15];
+			dest[e++] = hex[q&15];
+		} else 
+			dest[e++] = (byte)q;
+	}
+	//System.Diagnostics.Debug.Assert( e == l );
+	dest[l] = 0;
+}
+
+internal static NamespaceDecl parse( string text, out ArrayList errors ) {
+	parser p = new parser();
+	string_to_byte_arr( text, out p.buff );
+	p.l = 0;
+	p.parse();
+	
+	errors = p.errors;
+	return ( p.errors.Count != 0 ) ? null : p.rootns;
+}

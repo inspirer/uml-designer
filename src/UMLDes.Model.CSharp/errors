@@ -1,0 +1,10 @@
+lapg: symbol `Lfixed` is useless
+lapg: symbol `Lstackalloc` is useless
+lapg: symbol `comment` is useless
+lapg: symbol `'/*'` is useless
+lapg: symbol `anysym1` is useless
+lapg: symbol `'*/'` is useless
+
+input: using_directivesopt attributesopt modifiersopt Lclass ID class_baseopt '{' attributesopt modifiersopt operator_declarator '{' Lif '(' expression ')' embedded_statement
+conflict: shift/reduce (684, next Lelse)
+  embedded_statement ::= Lif '(' expression ')' embedded_statement

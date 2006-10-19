@@ -1,0 +1,38 @@
+
+
+
+
+   *******************************************************************************
+
+   StaticView, MouseAgent
+
+		1. Move action
+
+			Each movable object must implement IMovable.Moving
+
+			item.Moving
+				-> GuiBindedString:   root.coord_getxy
+				-> GuiClass:   foreach(GuiConnectionPoint) UpdatePosition
+					-> item.coord_getxy
+					-> conn.PositionChanged
+						-> notify_children -> ParentChanged
+							-> GuiBindedString: RecalculatePosition -> coord_getxy
+				-> GuiPoint:
+
+		2. Selection
+
+			StaticView.SelectInRectangle
+				-> foreach(object) TestSelected
+
+		3. Connection Creation
+
+
+
+		4. ModifyUniversalCoords
+
+			ModifyUniversalCoords
+				-> foreach(children) UpdateCoords
+					-> parent.translate_coords
+
+   *******************************************************************************
+		

@@ -1,0 +1,36 @@
+
+***************************************************
+
+  !  bug fixed
+  *  changes
+  +  added
+  -  removed
+
+***************************************************
+
+  == eg, 12, 14 Feb
+
+	 + ModelBuilder
+	 + Namespaces filling, Inner class filling
+	 + model saving into Xml
+
+  == eg, 24,25,31 Jan, 1,2,3 Feb
+	
+	 * parser really works, I've tested all features except statements
+	 * nodes are internal, model is public
+	 + node_builder.pl, automatic constructor generation
+	 + Node visualization
+	 + test/test.cs (main features test)
+
+  == eg, 15 jan 05
+
+	 + StatementNode, 90% statement-ов
+
+  == eg, 12 jan 05
+
+	 + doc comments in DeclNode
+
+  == eg, 10 jan 05
+
+     + Model declaration
+	 + Type, Expr tree

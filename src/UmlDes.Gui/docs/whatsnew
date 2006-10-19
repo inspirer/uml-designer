@@ -1,0 +1,226 @@
+
+***************************************************
+
+  !  bug fixed
+  *  changes
+  +  added
+  -  removed
+
+  eg  - Eugeniy Gryaznov
+  mt  - Michael Tsymbaluck (helped me with connections behaviour and FormsCollapser)
+  
+***************************************************
+
+  == eg, 08 nov 04
+
+	 * quadric points are rewritten
+
+  == eg, 27 oct 04
+  
+	 + INeedRefresh, StaticView.RefreshObject
+	 + InPlaceTextEdit.c
+	 + Qualifier's member editing
+	 * GuiAcceptConnection (renamed)-> IAcceptConnection
+
+  == eg, 26 oct 04
+  
+	 + MouseAgent.NewRelation, creation in Drop if Inheritance has found
+
+  == eg, 25 oct 04
+  
+     + Associated objects
+     + IMoveableChild (Unlink, Relink)
+     + GuiQualifier.State
+     + States saving during moving
+     + GuiSelector.PostLoad
+     * Connection/Class/Point/BindedString.State
+
+  == eg, 22 oct 04
+  
+	 + IMoveable.IsMoveable
+	 ! BUG: move connection, then click to the connection point, Undo fails
+	 + GuiConnectionNavigation
+	 ! points on Classes
+	 * Cascade drawing, HasPoint parameters and logic changed
+
+  == eg, 20,21 oct 04
+  
+	 + GuiQualifier.c, new class, child of GuiClass, inherits GuiBinded
+	 + GuiQualifier painting, Selection, moving, creation
+
+  == eg, 18 oct 04
+  
+	 + Paint of Aggregation, Association, Usage ...
+	 + Change type from Context menu
+	 ! Extra point in creation
+
+  == eg, 11 oct 04
+  
+	 + PathFinder.polyline_quadric_DummyWay (from DoCreationFixup)
+  
+  == mt, 08 oct 04
+     
+     + collapsing for quadric connection
+
+  == eg, 06 oct 04
+  
+     + GuiConnectionPoint.State
+     ! Undo: connection changing after moving connection point
+
+  == eg, 05 oct 04
+  
+     + Context menu in Forms Collapser
+     * MoveMultiple, move logic
+     * Undo for all except connection points moving
+     
+  == mt, 05 oct 04
+  
+     ! quadric point's move bug
+     + GuiConnectionState
+
+  == eg, 04 oct 04  
+	 
+     + StateUndo 
+     
+  == mt, 04 oct 04
+  
+     ! quadric segment's move bug
+
+  == mt, 01 oct 04
+     
+     + quadric point moving support
+     ! endpoints in quadrics
+
+  == eg, 01 oct 04
+  
+     + connection removing
+     + Undo/Redo logic via Operation (StaticViewUndo, Undo, Operation, etc.)
+     + operations: GuiClass.OpMove, GuiBindedString.OpRename
+     * undo/redo icons on toolbar
+
+  == mt, 30 sep 04
+  
+     + segment collapsing for quadric connections was added
+     + quadric point move operation was added
+
+  == eg, 30 sep 04
+  
+	 + disabled menus, checked menus, correct shortcuts in menus
+	 + IRemovable interface, class removing
+	 + icons: new file, delete, parse, ....
+	 + View.Operation, View.DoOperation, View.IfEnabled	 
+	 + Add static view, Select other static view, rename it
+	 * Expanding of first level namespaces after refresh
+	 + modified flag, saving if modified on exit
+
+  == mt, 29 sep 04
+  
+     + quadric connection logic was added
+
+  == eg, 29 sep 04
+  
+	 * FlatMenu border reduced
+	 ! WM_PRINT usage
+	 ! main window controls docking
+	 + hyphens in ConnectionPoints
+	 + icons: new, straight, curved, segmented, help, undo, ...
+	 + menuitem shows shortcut
+
+  == eg, 20 sep 04
+  
+	 + polygon invalidation of Segmented connection
+	 + Connection::coord_nearest, coord_getxy
+
+  == eg, 17 sep 04
+  
+	 ! Save/Load segmented connections
+	 + Simple invalidate of segment connections
+	 ! invalidate of points
+	 + Segmented connection: NeedRepaint
+	 + started Geometry.rectangle_intersects_with_line
+
+  == eg, 15 sep 04
+  
+	 * segmented connections logic finished
+	 * MoveTo: returns new moveitem
+	 + MoveTo of ConnectionPoints
+	 + UC change handling in GuiConnection while adding/removing points
+	 * UpdateCoords now have parameter: 'orig'
+	 ! parsing of readonly
+
+  == eg, 14 sep 04
+  
+	 * Segmented connections logic started
+	 * MoveTo: 3,4 args are now ref
+	 + GuiConnection.MoveTo, GuiConnection.DrawSegmentConnection
+	 * GuiConnection.HasPoint, etc.
+ 
+  == eg, 10 sep 04
+  
+	 + Multiple selection works
+	 ! connection drawing: added direct_search arg to HasPoint and FindItem
+
+  == eg, 9 sep 04
+  
+     ! MouseAgent: popup menu place was wrong
+     * Toolbar 'DrawConnection' button works
+     + Open/Save dialogs in release build
+     + SaveAs
+     * ConnectionCreated actions moved from MouseAgent to GuiConnection.ConnectionCreated
+  
+  == eg, 14-28 aug 04 : I'am on vacation :)
+  
+  == eg, 12 aug 04 : I got married
+  
+  == eg, 4-6 aug 04
+
+     + FlatMenu.cs
+
+  == eg, 03 aug 04
+    
+     * Connection points became children
+     * font logic in ViewCtrl
+     * Classes drawing
+     * Selection list now calls: SelectionChanged on objects
+     + GuiObject: notify_children, invalidate_children
+     + GuiBinded: ParentChanged
+     * MouseAgent: MouseDown
+     * GuiBinded: location logic, RecalculatePosition
+     * renamed: IValidatable -> IValidateConnection
+     ! ....
+
+  == eg, 02 aug 04
+
+	redesign:
+     + GuiActive, GuiBinded
+     * system of children
+
+  == eg, 30 jul 04
+
+	 + FlatToolBar, FlatToolBarButton, FlatToolBarPanel
+     + open, save, scaling, mouseaction (select,drawconnection) from toolbar
+
+  == mt, 26 jul 04
+     + GuiBindedString was added
+     + GuiConnectionPoint was modified to support GuiBindedString
+     + ISelectable::HasPoint() was modified to support nested objects
+
+  == eg, 23 jul 04
+
+    + Toolbar
+    + Scaling from toolbar
+    * Page numbers and grid are temporary removed
+
+  == eg, 16 jul 04
+
+    * mouse scroll logic moved to MouseAgent (from ViewCtrl)
+    - ViewCtrl: ScrollCallback()
+    * StaticView: generate_id is replaced by RegisterItemID, which
+      registers new item with ID in all collections
+
+  == mt, 15 jul 04
+
+    + MouseAgent, ViewCtrl: Scrolling in MouseActions
+
+  == 
+    ... the other history is lost
