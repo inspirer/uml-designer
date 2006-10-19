@@ -800,34 +800,60 @@ namespace UMLDes {
 
 		#endregion
 
+		#region Menu on tree items
+
+		void RenameNode( object v, EventArgs ev ) {
+			TreeNode tn = (TreeNode)((FlatMenuItem)v).Tag;
+			tn.BeginEdit();
+		}
+
+		void TryDropDownMenu( int x, int y, object obj, TreeNode n ) {
+			MenuItem[] mi = null;
+
+			if( obj is UMLDes.GUI.View ) {
+				mi = new FlatMenuItem[] { FlatMenuItem.Create( "Rename", null, 0, false, new EventHandler(RenameNode), n ) };
+			}
+
+			if( mi == null )
+				return;
+			ContextMenu m = new ContextMenu( mi );
+			m.Show( ProjectTree, new Point( x, y ) );
+		}
+
+		#endregion
+
 		#region Drag & Drop and other tree ops
 
 		Rectangle dragbox = Rectangle.Empty;
 		UmlObject dragobject;
 		
 		void TreeMouseDown(object sender, System.Windows.Forms.MouseEventArgs e) {
+			TreeNode node = (sender as TreeView).GetNodeAt( e.X, e.Y);
+			if( node == null )
+				return;
+			object obj = ProjectTree.GetNodeObject( node );
+
 			dragbox = Rectangle.Empty;
 			if( (e.Button & MouseButtons.Left) == MouseButtons.Left ) {
-				TreeNode node = (sender as TreeView).GetNodeAt( e.X, e.Y);
-				if( node != null ) {
 
-					object obj = ProjectTree.GetNodeObject( node );
-
-					if( obj is UMLDes.GUI.View ) {
-						if( e.Clicks == 2 ) {
-							UMLDes.GUI.View v = obj as UMLDes.GUI.View;
-							SelectView( v, true );
-						}
-
-					} else if( !(obj is UmlDesignerSolution) ) {
-						Size dragSize = SystemInformation.DragSize;
-						dragbox = new Rectangle(new Point(e.X - (dragSize.Width /2), e.Y - (dragSize.Height /2)), dragSize);
-						dragobject = obj as UmlObject;
+				if( obj is UMLDes.GUI.View ) {
+					if( e.Clicks == 2 ) {
+						UMLDes.GUI.View v = obj as UMLDes.GUI.View;
+						SelectView( v, true );
 					}
+
+				} else if( !(obj is UmlDesignerSolution) ) {
+					Size dragSize = SystemInformation.DragSize;
+					dragbox = new Rectangle(new Point(e.X - (dragSize.Width /2), e.Y - (dragSize.Height /2)), dragSize);
+					dragobject = obj as UmlObject;
 				}
+			} else if( (e.Button & MouseButtons.Right) == MouseButtons.Right ) {
+				ProjectTree.SelectedNode = node;
+				if( obj != null )
+					TryDropDownMenu( e.X, e.Y, obj, node );
 			}
 		}
-		
+
 		void TreeMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
 			if( (e.Button & MouseButtons.Left) == MouseButtons.Left ) {
 				if( dragbox != Rectangle.Empty && !dragbox.Contains( e.X,e.Y) && dragobject != null ) {

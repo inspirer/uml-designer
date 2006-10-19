@@ -106,7 +106,7 @@ namespace UMLDes.GUI {
 			base.PostLoad ();
 		}
 
-		public void RefreshContent() {
+		public virtual void RefreshContent() {
 			content.Clear();
 			fillContent( content );
 			StateChanged();

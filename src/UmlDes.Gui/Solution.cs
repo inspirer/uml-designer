@@ -152,7 +152,7 @@ namespace UMLDes {
 		public void Refresh() {
 			ArrayList errors;
 			ModelBuilder.UpdateModel( model, out errors, new StatusNotifier(container.SetStatus) );
-			container.SetStatus( "Ready" );
+			container.SetStatus( "Refreshing diagrams" );
 			if( errors != null && errors.Count > 0 ) {
 				System.Text.StringBuilder sb = new System.Text.StringBuilder();
 				foreach( string s in errors )
@@ -164,6 +164,7 @@ namespace UMLDes {
 					v.RefreshContent();
 			}
 			GC.Collect();
+			container.SetStatus( "Ready" );
 		}
 		
 		#region ISolution support

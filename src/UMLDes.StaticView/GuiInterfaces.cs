@@ -88,4 +88,10 @@ namespace UMLDes.GUI {
 	public interface IHyphenSupport {
 		Geometry.Direction direction( int ux );
 	}
+
+	public interface IHasStereotype {
+		string[] StereoList { get; }
+		string Stereo { get; set; }
+		Rectangle EditRect { get; }
+	}
 }

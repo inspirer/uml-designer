@@ -48,7 +48,7 @@ namespace UMLDes.GUI {
 			} 
 		}
 
-		[XmlIgnore]	protected Point[] edges, shifted_edges;
+		[XmlIgnore]	internal Point[] edges, shifted_edges;
 
 		[XmlIgnore]	public override Point[] con_edges {
 			get {

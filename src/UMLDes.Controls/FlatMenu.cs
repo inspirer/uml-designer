@@ -11,6 +11,7 @@ namespace UMLDes.Controls {
 		public ImageList imagelist;
 		public int index;
 
+		public object Tag;
 
 		public ImageList Images {
 			get { return imagelist; }
@@ -155,6 +156,15 @@ namespace UMLDes.Controls {
 			}
 		}
 
+		public static FlatMenuItem Create( string text, ImageList iml, int index, bool Checked, EventHandler click_handler, object Tag ) {
+			FlatMenuItem fmi = new FlatMenuItem( text, iml, index, Checked );
+			if( click_handler != null )
+				fmi.Click += click_handler;
+			else
+				fmi.Enabled = false;
+			fmi.Tag = Tag;
+			return fmi;
+		}
 	}
 
 	/// <summary>

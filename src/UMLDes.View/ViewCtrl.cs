@@ -12,6 +12,8 @@ using UMLDes.Model;
 
 namespace UMLDes {
 
+	#region Common resource IDs
+
 	public enum FontTypes : int {
 		DEFAULT,
 		ROLE_NAME,
@@ -23,6 +25,8 @@ namespace UMLDes {
 		LAST
 	}
 
+	#endregion
+
 	/// <summary>
 	/// UI Control which contains StaticView, hides scrolling
 	/// </summary>
@@ -31,9 +35,30 @@ namespace UMLDes {
 		GUI.View curr;
 		public object DragObject;
 
-		const int left_margin = 1, top_margin = 1, right_margin = 1, bottom_margin = 1;
-		Rectangle DiagramArea;
+		const int scroller = 15, left_margin = 1, top_margin = 1, right_margin = scroller+1, bottom_margin = scroller+1;
+		Rectangle DiagramArea, VScrollRect, HScrollRect, PanelScroll;
 		int offx, offy;
+
+		#region Constructor
+
+		public ViewCtrl() {
+			this.Name = "ViewCtrl";
+
+#if !DEBUG_INVALIDATE
+			SetStyle( ControlStyles.AllPaintingInWmPaint, true );
+			SetStyle( ControlStyles.DoubleBuffer, true );
+#endif
+
+			curr = null;
+			offx = offy = 0;
+			x_res = 1119; y_res = 777;
+
+			SetupResources();
+		}
+
+		#endregion
+
+		#region Current GUI.View to show
 
 		/// <summary>current StaticView to show</summary>
 		public GUI.View Curr {
@@ -50,20 +75,7 @@ namespace UMLDes {
 			}
 		}
 
-		public ViewCtrl() {
-			this.Name = "ViewCtrl";
-
-#if !DEBUG_INVALIDATE
-			SetStyle( ControlStyles.AllPaintingInWmPaint, true );
-			SetStyle( ControlStyles.DoubleBuffer, true );
-#endif
-
-			curr = null;
-			offx = offy = 0;
-			x_res = 1119; y_res = 777;
-
-			SetupResources();
-		}
+		#endregion
 
 		#region Fonts, String Formats
 
@@ -106,29 +118,39 @@ namespace UMLDes {
 			}
 		}
 
-		#endregion
-
 		public new void Dispose() {
 			CleanupResources();
 		}
+
+		#endregion
+
+		#region Size change, refresh rectangles
 
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged (e);
 			int oldwidth = DiagramArea.Width + right_margin + left_margin, oldheight = DiagramArea.Height + bottom_margin + top_margin;
 
 			if( oldwidth < this.Width )
-				Invalidate( new Rectangle( DiagramArea.Right, ClientRectangle.Top, right_margin, ClientRectangle.Height ) );
-			else if( oldwidth > this.Width )
+				Invalidate( new Rectangle( DiagramArea.Right, ClientRectangle.Top, ClientRectangle.Right-DiagramArea.Right, ClientRectangle.Height ) );
+			else
 				Invalidate( new Rectangle( ClientRectangle.Right-right_margin, ClientRectangle.Top, right_margin, ClientRectangle.Height ) );
 
 			if( oldheight < this.Height )
-				Invalidate( new Rectangle( ClientRectangle.Left, DiagramArea.Bottom, ClientRectangle.Width, bottom_margin ) );
-			else if( oldheight > this.Height )
+				Invalidate( new Rectangle( ClientRectangle.Left, DiagramArea.Bottom, ClientRectangle.Width, ClientRectangle.Bottom - DiagramArea.Bottom ) );
+			else
 				Invalidate( new Rectangle( ClientRectangle.Left, ClientRectangle.Bottom-bottom_margin, ClientRectangle.Width, bottom_margin  ) );
 
 			DiagramArea = new Rectangle( ClientRectangle.X + left_margin, ClientRectangle.Y + top_margin, 
 				ClientRectangle.Width - right_margin - left_margin, ClientRectangle.Height - bottom_margin - top_margin );
+
+			PanelScroll = new Rectangle( ClientRectangle.Right - right_margin, ClientRectangle.Bottom - bottom_margin, right_margin - 1, bottom_margin - 1 );
+			VScrollRect = new Rectangle( ClientRectangle.Right - right_margin, ClientRectangle.Y + top_margin, right_margin - 1, ClientRectangle.Height - bottom_margin - top_margin);
+			HScrollRect = new Rectangle( ClientRectangle.X + left_margin, ClientRectangle.Bottom - bottom_margin, ClientRectangle.Width - right_margin - left_margin, bottom_margin - 1);
 		}
+
+		#endregion
+
+		#region Paint
 
 		public const int gridsize = 24;
 
@@ -208,14 +230,6 @@ namespace UMLDes {
 
 		}
 
-		private int x_to_doc( int x ) {
-			return (int) ((x - left_margin)*(float)scaledoc / scaleview ) + offx;
-		}
-
-		private int y_to_doc( int y ) {
-			return (int) ((y - top_margin)*(float)scaledoc / scaleview ) + offy;
-		}
-
 		protected override void OnPaint(PaintEventArgs e) {
 			Graphics g = e.Graphics;
 			Rectangle r, clip = e.ClipRectangle;
@@ -248,16 +262,240 @@ namespace UMLDes {
 			}
 			g.Transform = new Matrix();
 			r = ClientRectangle;
+
+			// Draw scroller
+			Rectangle page_rect = PageRectangle;
+			DrawScroller( g, true, page_rect );
+			DrawScroller( g, false, page_rect );
+			g.FillRectangle( Brushes.LightGray, PanelScroll );
+
+			// Draw external frame
 			g.DrawLine( Pens.Gray, r.Left, r.Bottom-1, r.Left, r.Top );
 			g.DrawLine( Pens.Gray, r.Left, r.Top, r.Right-1, r.Top );
 			g.DrawLine( Pens.DarkGray, r.Left, r.Bottom-1, r.Right-1, r.Bottom-1 );
 			g.DrawLine( Pens.DarkGray, r.Right-1, r.Bottom-1, r.Right-1, r.Top );
 		}
 
+		#endregion
+
+		#region Scroller
+
+		private int ScrollMax( bool vertical ) {
+			return vertical ? y_pages*y_res : x_pages*x_res;
+		}
+
+		private int ScrollLeft( bool vertical, Rectangle page_rect ) {
+			return vertical ? page_rect.Top : page_rect.Left;
+		}
+
+		private int ScrollRight( bool vertical, Rectangle page_rect ) {
+			return vertical ? page_rect.Bottom : page_rect.Right;
+		}
+
+		private void SetScrollLeft( bool vertical, int val, int max ) {
+			int new_pos = (int) ( (double)val * (ScrollMax( vertical )-(vertical ? PageRectangle.Height : PageRectangle.Width)) / max );
+
+			if( vertical )
+				AdjustPageCoords( 0, new_pos - offy );
+			else
+				AdjustPageCoords( new_pos - offx, 0 );
+		}
+
+		bool[] pressed = new bool[] { false, false, false, false };
+
+		private void DrawScrollerButton( Graphics g, int x, int y, int direction ) {
+			using( Brush b = new SolidBrush( Color.FromArgb( 237, 234, 229 ) ) )
+				g.FillRectangle( b, x+1, y+1, scroller-2, scroller-2 );
+			g.DrawRectangle( Pens.DarkGray, x, y, scroller-1, scroller-1 );
+			int cx = x + scroller/2, cy = y + scroller/2;
+			Brush br = pressed[direction] ? Brushes.White : Brushes.Black;
+
+			switch( direction ) {
+				case 0: // up
+					g.FillPolygon( br, new Point[] { new Point( cx, cy-3), new Point( cx-4, cy+2), new Point( cx+4, cy+2) } );
+					break;
+				case 1: // right
+					g.FillPolygon( br, new Point[] { new Point( cx+3, cy), new Point( cx-1, cy+4), new Point( cx-1, cy-4) } );
+					break;
+				case 2: // down
+					g.FillPolygon( br, new Point[] { new Point( cx+4, cy-1), new Point( cx, cy+3), new Point( cx-3, cy-1) } );
+					break;
+				case 3: // left
+					g.FillPolygon( br, new Point[] { new Point( cx-2, cy), new Point( cx+2, cy+4), new Point( cx+2, cy-4) } );
+					break;
+			}
+
+		}
+
+		private Rectangle GetScrollRectangle( bool vertical, int max, int pos_start, int pos_end ) {
+			Rectangle scroll_rect = vertical ? VScrollRect : HScrollRect;
+			int length = (vertical ? scroll_rect.Height : scroll_rect.Width ) - 2*scroller;
+
+			// fix wrong values
+			if( pos_start < 0 ) pos_start = 0;
+			if( pos_end > max ) pos_end = max;
+
+			pos_start = (int)((double)pos_start * length / max);
+			pos_end = (int)((double)pos_end * length / max);
+
+			if( pos_end - pos_start < 5 )
+				pos_end = pos_start+5;
+			if( pos_end > length ) {
+				pos_start = length - 5;
+				pos_end = length;
+			}
+
+			if( vertical ) {
+				scroll_rect.Y += pos_start + scroller;
+				scroll_rect.Height = pos_end - pos_start;
+			} else {
+				scroll_rect.X += pos_start + scroller;
+				scroll_rect.Width = pos_end - pos_start;
+			}
+			return scroll_rect;
+		}
+
+		bool[] bar_selected = new bool[] { false, false };
+
+		private void DrawScroller( Graphics g, bool vertical, Rectangle page_rect ) {
+			Rectangle r = vertical ? VScrollRect : HScrollRect;
+			using( Brush b = new LinearGradientBrush( Rectangle.Inflate(r,1,1), Color.FromArgb( 227, 224, 219 ), Color.FromArgb( 247, 244, 239 ), vertical ? 0f : 90f ) )
+				g.FillRectangle( b, r );
+
+			// check for space
+			System.Diagnostics.Debug.Assert( vertical && r.Width == scroller || !vertical && r.Height == scroller );
+			if( vertical && r.Height < 3*scroller || !vertical && r.Width < 3*scroller ) {
+				return;
+			}
+
+			int max = ScrollMax( vertical ), pos_start = ScrollLeft( vertical, page_rect ), pos_end = ScrollRight( vertical, page_rect );
+
+			DrawScrollerButton( g, r.X, r.Y, vertical ? 0 : 3 );
+			DrawScrollerButton( g, r.Right-scroller, r.Bottom - scroller, vertical ? 2 : 1 );
+
+			Rectangle scroll_rect = GetScrollRectangle( vertical, max, pos_start, pos_end );
+			using( Brush b = new SolidBrush( Color.FromArgb( 227, 224, 219 ) ) )
+				g.FillRectangle( b, scroll_rect.X+1, scroll_rect.Y+1, scroll_rect.Width-2, scroll_rect.Height-2 );
+
+			Pen top = Pens.DarkGray, bottom = Pens.Gray;
+
+			if( bar_selected[vertical?0:1] ) {
+				top = Pens.Gray;
+				bottom = Pens.DarkGray;
+			}
+
+			g.DrawLine( top, scroll_rect.X, scroll_rect.Y, scroll_rect.X, scroll_rect.Bottom-1 );
+			g.DrawLine( top, scroll_rect.X, scroll_rect.Y, scroll_rect.Right-1, scroll_rect.Y );
+			g.DrawLine( bottom, scroll_rect.Right-1, scroll_rect.Y, scroll_rect.Right-1, scroll_rect.Bottom-1 );
+			g.DrawLine( bottom, scroll_rect.X, scroll_rect.Bottom-1, scroll_rect.Right-1, scroll_rect.Bottom-1 );
+		}
+
+		private enum MouseAction { MouseMove, LeftButtonDown, LeftButtonUp };
+
+		bool scroll_on = false, scroll_vert, scroll_bar;
+		int scroll_pos, scroll_length;
+
+		void ScrollMouseAction( bool vertical, int x, int y, MouseAction ma ) {
+			if( scroll_on && ma != MouseAction.LeftButtonDown )
+				vertical = scroll_vert;
+
+			Rectangle r = vertical ? VScrollRect : HScrollRect;
+			if( !r.Contains( x, y ) && ma == MouseAction.LeftButtonDown || ma != MouseAction.LeftButtonDown && !scroll_on )
+				return;
+
+			// check for space
+			System.Diagnostics.Debug.Assert( vertical && r.Width == scroller || !vertical && r.Height == scroller );
+			if( vertical && r.Height < 3*scroller || !vertical && r.Width < 3*scroller ) {
+				return;
+			}
+
+			int left = vertical ? r.Top : r.Left, right = vertical ? r.Bottom : r.Right, mouse_pos = vertical ? y : x;
+
+			switch( ma ) {
+				case MouseAction.MouseMove:
+					if( scroll_on && scroll_bar ) {
+
+						int target = mouse_pos - scroll_pos;
+						if( target < left + scroller ) target = left + scroller;
+						if( target >= right - scroller - scroll_length ) target = right - scroller - scroll_length;
+						SetScrollLeft( scroll_vert, target - (left + scroller), right - left - 2*scroller - scroll_length );
+
+					}
+					break;
+
+				case MouseAction.LeftButtonDown:
+
+					scroll_vert = vertical;
+					if( mouse_pos >= left && mouse_pos < left + scroller ) {
+						pressed[vertical?0:3] = true;
+						AdjustPageCoords( vertical ? 0 : -20, vertical ? -20 : 0 );
+						scroll_on = true;
+						scroll_bar = false;
+					} else if( mouse_pos < right && mouse_pos >= right - scroller ) {
+						pressed[vertical?2:1] = true;
+						AdjustPageCoords( vertical ? 0 : 20, vertical ? 20 : 0 );
+						scroll_on = true;
+						scroll_bar = false;
+					} else {
+						Rectangle page_rect = PageRectangle;
+						Rectangle scroll_rect = GetScrollRectangle( vertical, ScrollMax( vertical ), ScrollLeft( vertical, page_rect), ScrollRight( vertical, page_rect ) );
+						if( scroll_rect.Contains( x, y ) ) {
+							scroll_pos = vertical ? y - scroll_rect.Top : x - scroll_rect.Left;
+							scroll_length = vertical ? scroll_rect.Height : scroll_rect.Width;
+							scroll_bar = scroll_on = true;
+							bar_selected[vertical?0:1] = true;
+							Invalidate(r);
+
+						} else {
+							if( mouse_pos < (vertical ? scroll_rect.Top : scroll_rect.Left ) ) {
+								AdjustPageCoords( vertical ? 0 : -DiagramArea.Width/5, vertical ? -DiagramArea.Height/5 : 0 );
+							} else if( mouse_pos >= (vertical ? scroll_rect.Bottom : scroll_rect.Right) ) {
+								AdjustPageCoords( vertical ? 0 : DiagramArea.Width/5, vertical ? DiagramArea.Height/5 : 0 );
+							}
+						}
+					}
+
+					break;
+				case MouseAction.LeftButtonUp:
+					scroll_on = false;
+					bar_selected[0] = bar_selected[1] = pressed[0] = pressed[1] = pressed[2] = pressed[3] = false;
+					Invalidate( r );
+					break;
+			}
+		}
+
+		#endregion
+
+		#region Coordinates transformation
+
+		public Rectangle PageRectangle {			
+			get {
+				if( zoomon ) {
+					int x = DiagramArea.Left / scaleview * scaledoc, y = DiagramArea.Top / scaleview * scaledoc;
+					return new Rectangle( offx, offy, 
+						(DiagramArea.Right + scaleview - 1) / scaleview * scaledoc - x,
+						(DiagramArea.Bottom + scaleview - 1) / scaleview * scaledoc - y );
+				} else
+					return new Rectangle( offx, offy, DiagramArea.Width, DiagramArea.Height );			
+			}
+		}
+
+		private int x_to_doc( int x ) {
+			return (int) ((x - left_margin)*(float)scaledoc / scaleview ) + offx;
+		}
+
+		private int y_to_doc( int y ) {
+			return (int) ((y - top_margin)*(float)scaledoc / scaleview ) + offy;
+		}
+
 		public Point point_to_screen( int x, int y ) {
 			int nx = (x-offx) / scaledoc * scaleview, ny = (y-offy) / scaledoc * scaleview;
 			return new Point( nx, ny );
 		}
+
+		#endregion
+
+		#region Invalidate
 
 		public void InvalidatePage( Rectangle r ) {
 
@@ -285,23 +523,15 @@ namespace UMLDes {
 			}
 		}
 
+		#endregion
+
+		#region Adjust viewport parameters
+
 		public void AdjustPageCoords( int dx, int dy ) {
 			if( dx != 0 || dy != 0 ) {
 				offx += dx;
 				offy += dy;
-				Invalidate( DiagramArea );
-			}
-		}
-
-		public Rectangle PageRectangle {			
-			get {
-				if( zoomon ) {
-					int x = DiagramArea.Left / scaleview * scaledoc, y = DiagramArea.Top / scaleview * scaledoc;
-					return new Rectangle( offx, offy, 
-						(DiagramArea.Right + scaleview - 1) / scaleview * scaledoc - x,
-						(DiagramArea.Bottom + scaleview - 1) / scaleview * scaledoc - y );
-				} else
-					return new Rectangle( offx, offy, DiagramArea.Width, DiagramArea.Height );			
+				Invalidate();
 			}
 		}
 
@@ -311,6 +541,8 @@ namespace UMLDes {
 			zoomon = down != up;
 			Invalidate();
 		}
+
+		#endregion
 
 		#region Drag & Drop
 
@@ -346,33 +578,57 @@ namespace UMLDes {
 
 		#region Mouse moving routines
 
+		bool hold = false, last_over;
+
+		private void TryScrollbars( int x, int y, MouseAction ma ) {
+			if( ma == MouseAction.MouseMove ) {
+				if( hold )
+					ScrollMouseAction( last_over, x, y, ma );
+			} else if( hold && ma == MouseAction.LeftButtonUp ) {
+				ScrollMouseAction( last_over, x, y, ma );
+				hold = false;
+			} else if( HScrollRect.Contains( x, y ) ) {
+				ScrollMouseAction( last_over = false, x, y, ma );
+				hold = (ma == MouseAction.LeftButtonDown);
+
+			} else if( VScrollRect.Contains( x, y ) ) {
+				ScrollMouseAction( last_over = true, x, y, ma );
+				hold = (ma == MouseAction.LeftButtonDown);
+
+			}
+		}
+
 		protected override void OnMouseWheel(MouseEventArgs e) {
-			if( ( Control.ModifierKeys & Keys.Shift ) == Keys.Shift ) { 
+			if( ( Control.ModifierKeys & Keys.Shift ) == Keys.Shift || HScrollRect.Contains( e.X, e.Y ) ) { 
 				AdjustPageCoords( -e.Delta, 0 );
 			} else {
 				AdjustPageCoords( 0, -e.Delta );
 			}
 		}
 
-
 		protected override void OnMouseDown(MouseEventArgs e) {
 			if( curr == null )
 				return;
 			Focus();
-			curr.mouseagent.MouseDown( x_to_doc(e.X), y_to_doc(e.Y), e.Button, Control.ModifierKeys, e.X, e.Y );
-			base.OnMouseDown( e );
-		}
-
-		protected override void OnMouseMove(MouseEventArgs e) {
-			if( curr == null )
-				return;
-			curr.mouseagent.MouseMove( x_to_doc(e.X), y_to_doc(e.Y), e.Button );
+			if( DiagramArea.Contains( e.X, e.Y ) )
+				curr.mouseagent.MouseDown( x_to_doc(e.X), y_to_doc(e.Y), e.Button, Control.ModifierKeys, e.X, e.Y );
+			if( ( e.Button & MouseButtons.Left ) == MouseButtons.Left )
+				TryScrollbars( e.X, e.Y, MouseAction.LeftButtonDown );
 		}
 
 		protected override void OnMouseUp(MouseEventArgs e) {
 			if( curr == null )
 				return;
 			curr.mouseagent.MouseUp( e.Button );
+			if( ( e.Button & MouseButtons.Left ) == MouseButtons.Left )
+				TryScrollbars( e.X, e.Y, MouseAction.LeftButtonUp );
+		}
+
+		protected override void OnMouseMove(MouseEventArgs e) {
+			if( curr == null )
+				return;
+			curr.mouseagent.MouseMove( x_to_doc(e.X), y_to_doc(e.Y), e.Button );
+			TryScrollbars( e.X, e.Y, MouseAction.MouseMove );
 		}
 
 		protected override void OnMouseLeave(EventArgs e) {

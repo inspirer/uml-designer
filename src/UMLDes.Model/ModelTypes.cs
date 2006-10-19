@@ -20,32 +20,6 @@ namespace UMLDes.Model {
 		}
 	}
 
-	/// <summary>
-	/// Light object
-	/// </summary>
-	public class UmlSection {
-
-		UmlClass cl;
-		UmlMemberKind mkind;
-
-		public UmlSection( UmlClass cl, UmlMemberKind kind ) {
-			this.cl = cl;
-			this.mkind = kind;
-		}
-
-		public ArrayList members { 
-			get { 
-				ArrayList list = new ArrayList();
-				if( cl.Members != null )
-					foreach( UmlMember m in cl.Members )
-						if( m.MemberKind == mkind )
-							list.Add( m );
-
-				return list;
-			} 
-		}
-	}
-
 
 	/// <summary>
 	/// Class, Interface or Struct
@@ -77,7 +51,6 @@ namespace UMLDes.Model {
 		ArrayList UmlTypeHolder.Types { get { if( Types == null ) Types = new ArrayList(); return Types; } }
 
 		[XmlAttribute] public bool IsAbstract; // TODO
-		[XmlAttribute] public string Stereotype;
 
 		#region UmlObject
 

@@ -15,8 +15,12 @@ namespace UMLDes.GUI {
 
 		#region children
 
-		[XmlElement("String", typeof(GuiBindedString)), XmlElement("ConnectionPoint",typeof(GuiConnectionPoint)),
-			XmlElement("Point",typeof(GuiIntermPoint)) ]
+		[
+		 XmlElement("String", typeof(GuiBindedString)), 
+		 XmlElement("ConnectionPoint",typeof(GuiConnectionPoint)),
+		 XmlElement("Stereotype", typeof(GuiBindedStereotype)),
+		 XmlElement("Point",typeof(GuiIntermPoint)) 
+		]
         public ArrayList children;
 		ArrayList _children;       // used by IRemoveable
 
@@ -114,19 +118,6 @@ namespace UMLDes.GUI {
 				}
 			}
 		}
-
-		#region Helper functions
-
-		public void AddItem( UMLDes.Controls.FlatMenuItem fmi, string text, ToolBarIcons icon, bool Checked, EventHandler click_handler ) {
-			UMLDes.Controls.FlatMenuItem curr = new UMLDes.Controls.FlatMenuItem( text, icon != ToolBarIcons.None ? parent.proj.icon_list : null, (int)icon, Checked );
-			if( click_handler != null )
-				curr.Click += click_handler;
-			else
-				curr.Enabled = false;
-			fmi.MenuItems.Add( curr );
-		}
-
-		#endregion
 	}
 
 	public abstract class GuiActive : GuiObject, IHasID {
@@ -223,6 +214,9 @@ namespace UMLDes.GUI {
 						nx = x3; ny = y3;
 						nux = i; 
 						nuy = (float)(Math.Abs(nx - p1.X) + Math.Abs(ny - p1.Y)) / (Math.Abs(p2.X - p1.X) + Math.Abs(p2.Y - p1.Y));
+
+						if( Math.Abs( x3 - (p1.X + p2.X)/2 ) < 8 && Math.Abs( y3 - (p1.Y + p2.Y)/2 ) < 8 )
+							nuy = 0.5f;
 					}
 				}
 

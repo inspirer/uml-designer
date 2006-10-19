@@ -50,7 +50,7 @@ namespace UMLDes.GUI {
 
 		public static GuiEnum fromUML( UmlEnum st ) {
 			GuiEnum s = new GuiEnum();
-			s.name = st.FullQualName;
+			s.name = st.UniqueName;
 			s.st = st;
 			s.Created();
 			return s;
@@ -115,8 +115,8 @@ namespace UMLDes.GUI {
 			// Display Options
 			evh = new EventHandler( DisplayOptions );
 			curr = new FlatMenuItem( "Display &Options...", null, 0, false );
-			AddItem( curr, "Show full &qualified name", ToolBarIcons.show_qual, show_full_qual, evh );
-			AddItem( curr, "&Show members", ToolBarIcons.None, show_members, evh );
+			parent.AddItem( curr, "Show full &qualified name", ToolBarIcons.show_qual, show_full_qual, evh );
+			parent.AddItem( curr, "&Show members", ToolBarIcons.None, show_members, evh );
 			m.MenuItems.Add( curr );
 		}
 

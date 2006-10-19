@@ -8,7 +8,7 @@ using UMLDes.Model;
 namespace UMLDes.GUI {
 
 	internal enum MouseOperation {
-		Select, DrawConnection, DrawComment
+		Select, DrawConnection, DrawComment, DrawPackage
 	};
 
 	public class StaticViewMouseAgent : MouseAgent {
@@ -21,7 +21,7 @@ namespace UMLDes.GUI {
 
 		internal MouseOperation current_operation;
 		internal GuiConnectionStyle conn_style = GuiConnectionStyle.Quadric;
-		internal GuiConnectionType conn_type;
+		internal UmlRelationType conn_type;
 
 		StaticView parent;
 		MouseAction action;
@@ -78,9 +78,9 @@ namespace UMLDes.GUI {
 
 					// TODO ?????????
 					/*if( c.st.bases != null && c.st.bases.Contains( dropitem.st.fullname ) ) {
-						NewRelation( dropitem, c, GuiConnectionType.Inheritance );
+						NewRelation( dropitem, c, UmlRelationType.Inheritance );
 					} else if( dropitem.st.bases != null && dropitem.st.bases.Contains( c.st.fullname ) ) {
-						NewRelation( c, dropitem, GuiConnectionType.Inheritance );
+						NewRelation( c, dropitem, UmlRelationType.Inheritance );
 					}*/
 				}
 			dropitem = null;
@@ -134,11 +134,17 @@ namespace UMLDes.GUI {
 
 			if( b == MouseButtons.Left ) {
 
-				if( current_operation == MouseOperation.DrawComment ) {
+				if( current_operation == MouseOperation.DrawComment || current_operation == MouseOperation.DrawPackage ) {
 
-					GuiMemo m = GuiElementFactory.CreateMemo( parent, x, y );
+					switch( current_operation ) {
+						case MouseOperation.DrawComment:
+							moveitem = GuiElementFactory.CreateMemo( parent, x, y );
+							break;
+						case MouseOperation.DrawPackage:
+							moveitem = GuiElementFactory.CreatePackage( parent, x, y );
+							break;
+					}
 
-					moveitem = m;
 					first_move = true;
 					moveux = 0;
 					moveuy = 0;
@@ -159,7 +165,7 @@ namespace UMLDes.GUI {
 					conn_item.coord_nearest( x, y, out ux, out uy );
 					action = MouseAction.CreateConnection;
 
-					conn = new GuiConnection( new GuiConnectionPoint( conn_item, ux, uy, 0 ), new GuiConnectionPoint( x, y, 1 ), conn_type, parent, conn_style );
+					conn = new GuiConnection( new GuiConnectionPoint( conn_item, ux, uy, 0 ), new GuiConnectionPoint( x, y, 1 ), conn_type, parent, conn_type == UmlRelationType.Attachment ? GuiConnectionStyle.Line : conn_style );
 					conn.first.item.coord_nearest( x, y, out conn.first.ux, out conn.first.uy );
 					conn.first.UpdatePosition( true );
 					conn.DoCreationFixup();
@@ -347,7 +353,7 @@ namespace UMLDes.GUI {
 					if( conn.second.item == null )
 						conn.Invalidate();
 					else {
-						conn.ConnectionCreated( parent );
+						conn.ConnectionCreated( parent, null, null, null, null );
 						parent.Undo.Push( new CreateOperation( conn ), false );
 					}
 					conn = null;
@@ -406,7 +412,11 @@ namespace UMLDes.GUI {
 						dropitem.Paint( g, r, offx, offy );
 						using( Pen p = new Pen( Color.White ) ) {
 							p.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
-							g.DrawRectangle( p, x + GuiPolygonItem.inflate, y + GuiPolygonItem.inflate, dropitem.place.Width - 2*GuiPolygonItem.inflate, dropitem.place.Height - 2*GuiPolygonItem.inflate );
+							if( dropitem is GuiPolygonItem )
+                                g.DrawPolygon( p, ((GuiPolygonItem)dropitem).shifted_edges );
+							else
+								g.DrawRectangle( p, x + GuiPolygonItem.inflate, y + GuiPolygonItem.inflate, dropitem.place.Width - 2*GuiPolygonItem.inflate, dropitem.place.Height - 2*GuiPolygonItem.inflate );
+							
 						}
 					}
 

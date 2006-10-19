@@ -4,16 +4,12 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Xml.Serialization;
 using UMLDes.Controls;
+using UMLDes.Model;
 
 namespace UMLDes.GUI {
 
 	public enum GuiConnectionNavigation {
 		None, Left, Right
-	}
-
-	public enum GuiConnectionType {
-		Inheritance, Association, Aggregation, Attachment,
-		Dependency, Composition, Realization
 	}
 
 	public enum GuiConnectionStyle {
@@ -42,11 +38,13 @@ namespace UMLDes.GUI {
 		[XmlIgnore] public GuiConnectionPoint first, second;
 		[XmlIgnore] public ArrayList ipoints = new ArrayList();	// Array of GuiPoints, contains also first and second
 		[XmlIgnore] public ArrayList cpoints = new ArrayList();
-		[XmlAttribute] public GuiConnectionType type;
+		[XmlAttribute] public UmlRelationType type;
 		[XmlAttribute] public GuiConnectionNavigation nav;
 		[XmlIgnore] bool created = false;
 		[XmlIgnore] public ConnectionState Style;
-		[XmlIgnore] public GuiBindedString conn_name, conn_stereo;
+		[XmlIgnore] public GuiBindedString conn_name;
+		[XmlIgnore] public GuiBindedStereotype conn_stereo;
+		[XmlAttribute] public string relation_id;
 
 		const int MINIMUM_DISTANCE = 10;
 
@@ -104,7 +102,7 @@ namespace UMLDes.GUI {
 		public GuiConnection() {
 		}
 								 
-		public GuiConnection( GuiConnectionPoint p1, GuiConnectionPoint p2, GuiConnectionType t, StaticView par, GuiConnectionStyle style ) {
+		public GuiConnection( GuiConnectionPoint p1, GuiConnectionPoint p2, UmlRelationType t, StaticView par, GuiConnectionStyle style ) {
 			first = p1;
 			second = p2;
 			type = t;
@@ -238,9 +236,9 @@ namespace UMLDes.GUI {
 			Pen color = selected ? Pens.Blue : Pens.Black, p = color;
 
 			switch( type ) {
-				case GuiConnectionType.Attachment:
-				case GuiConnectionType.Dependency:
-				case GuiConnectionType.Realization:
+				case UmlRelationType.Attachment:
+				case UmlRelationType.Dependency:
+				case UmlRelationType.Realization:
 					p = new Pen( p.Color );
 					p.DashStyle = DashStyle.Dash;
 					p.DashOffset = 0;
@@ -263,18 +261,18 @@ namespace UMLDes.GUI {
 			x2 = pnt.x + r.X - offx; y2 = pnt.y + r.Y - offy;
 
 			switch( type ) {
-				case GuiConnectionType.Aggregation:
-				case GuiConnectionType.Composition:
+				case UmlRelationType.Aggregation:
+				case UmlRelationType.Composition:
 					Geometry.point_rhomb_on_segment( out pnts, x1, y1, x2, y2, 7, 5 );
-					g.FillPolygon( type == GuiConnectionType.Composition ? Brushes.Black : Brushes.White, pnts );
+					g.FillPolygon( type == UmlRelationType.Composition ? Brushes.Black : Brushes.White, pnts );
 					g.DrawPolygon( color, pnts );
 					if( nav == GuiConnectionNavigation.Left ) {
 						x1 = pnts[2].X; y1 = pnts[2].Y;
-						goto case GuiConnectionType.Association;
+						goto case UmlRelationType.Association;
 					} else if( nav == GuiConnectionNavigation.Right )
-						goto case GuiConnectionType.Association;
+						goto case UmlRelationType.Association;
 					break;
-				case GuiConnectionType.Association:
+				case UmlRelationType.Association:
 					if( nav == GuiConnectionNavigation.Left ) {
 						Geometry.point_triangle_on_segment( out pnts, x1, y1, x2, y2, 7, 5 );
 						g.DrawLines( color, pnts );
@@ -286,25 +284,25 @@ namespace UMLDes.GUI {
 						g.DrawLines( color, pnts );
 					}
 					break;
-				case GuiConnectionType.Inheritance:
-				case GuiConnectionType.Realization:
+				case UmlRelationType.Inheritance:
+				case UmlRelationType.Realization:
 					Geometry.point_triangle_on_segment( out pnts, x1, y1, x2, y2, 10, 7 );
 					g.FillPolygon( Brushes.White, pnts );
 					g.DrawPolygon( color, pnts );
 					break;
-				case GuiConnectionType.Dependency:
+				case UmlRelationType.Dependency:
 					Geometry.point_triangle_on_segment( out pnts, x1, y1, x2, y2, 7, 5 );
 					g.DrawLines( color, pnts );
 					break;
-				case GuiConnectionType.Attachment:
+				case UmlRelationType.Attachment:
 					break;
 			}
 			g.SmoothingMode = SmoothingMode.Default;
 
 			switch( type ) {
-				case GuiConnectionType.Attachment:
-				case GuiConnectionType.Dependency:
-				case GuiConnectionType.Realization:
+				case UmlRelationType.Attachment:
+				case UmlRelationType.Dependency:
+				case UmlRelationType.Realization:
 					p.Dispose();
 					break;
 			}
@@ -404,7 +402,7 @@ namespace UMLDes.GUI {
 		}
 
 		// registers connection in StaticView structures:
-		public void ConnectionCreated( StaticView parent_view ) {
+		public void ConnectionCreated( StaticView parent_view, string role1, string role2, string name, string stereo ) {
 
 			//  1. register connection ipoints in objects
 			first.item.add_connection_point( first );
@@ -412,10 +410,10 @@ namespace UMLDes.GUI {
 			//  2. create ID for connection
 			id = parent_view.RegisterItemID( type.ToString(), this );
 			//  3. create default roles
-			first.role = create_label( "Left", -1, 0f, first.hyphen_dir, 0, true );
-			second.role = create_label( "Right", -second.number_in_conn-1, 0f, second.hyphen_dir, 0, true );
-			conn_name = create_label( "Name", Int32.MaxValue, 0f, Geometry.Direction.Null, 0, true );
-			conn_stereo = create_label( "\x00ABUsage\xBB", Int32.MaxValue, 0f, Geometry.Direction.Null, 15, true );
+			first.role = create_label( role1 != null ? role1 : "Left", -1, 0f, first.hyphen_dir, 0, role1 == null );
+			second.role = create_label( role2 != null ? role2 : "Right", -second.number_in_conn-1, 0f, second.hyphen_dir, 0, role2 == null );
+			conn_name = create_label( name != null ? name : "Name", Int32.MaxValue, 0f, Geometry.Direction.Null, 0, name == null );
+			conn_stereo = new GuiBindedStereotype( stereo != null ? stereo : "Usage", this, 0, -15, Int32.MaxValue, 0f, stereo == null );
 			//  4. register children, make them drawable and serializable
 			add_child( first, "LeftPoint" );
 			add_child( second, "RightPoint" );
@@ -454,7 +452,7 @@ namespace UMLDes.GUI {
 			first.role = find_child( "Role 1" ) as GuiBindedString;
 			second.role = find_child( "Role 2" ) as GuiBindedString;
 			conn_name = find_child( "Name" ) as GuiBindedString;
-			conn_stereo = find_child( "Stereotype" ) as GuiBindedString;
+			conn_stereo = find_child( "Stereotype" ) as GuiBindedStereotype;
 			ipoints.Add( first );
 			for( int i = 1; i < loadtime_iterm_count - 1; i++ )
 				ipoints.Add( find_child( "Point #" + i ) );
@@ -633,25 +631,25 @@ namespace UMLDes.GUI {
 			this.Invalidate();
 			switch( (ToolBarIcons)(o as FlatMenuItem).ImageIndex ) {
 				case ToolBarIcons.conn_inher:	// Inheritance
-					type = GuiConnectionType.Inheritance;
+					type = UmlRelationType.Inheritance;
 					break;
 				case ToolBarIcons.conn_assoc:	// Association
-					type = GuiConnectionType.Association;
+					type = UmlRelationType.Association;
 					break;
 				case ToolBarIcons.conn_aggregation: // Aggregation
-					type = GuiConnectionType.Aggregation;
+					type = UmlRelationType.Aggregation;
 					break;
 				case ToolBarIcons.conn_composition:	// Composition
-					type = GuiConnectionType.Composition;
+					type = UmlRelationType.Composition;
 					break;
 				case ToolBarIcons.conn_attachm:	// Attachment
-					type = GuiConnectionType.Attachment;
+					type = UmlRelationType.Attachment;
 					break;
 				case ToolBarIcons.conn_realiz:	// Realization
-					type = GuiConnectionType.Realization;
+					type = UmlRelationType.Realization;
 					break;
 				case ToolBarIcons.conn_dependence:	// Dependency
-					type = GuiConnectionType.Dependency;
+					type = UmlRelationType.Dependency;
 					break;
 			}
 			this.Invalidate();
@@ -705,42 +703,42 @@ namespace UMLDes.GUI {
 			// Style
 			curr = new FlatMenuItem( "Style", null, 0, false );
 			evh = new EventHandler( ChangeStyleClick );
-			AddItem( curr, "Line", ToolBarIcons.straight_conn, this.style == GuiConnectionStyle.Line, evh );
-			AddItem( curr, "Segmented", ToolBarIcons.segmented_conn, this.style == GuiConnectionStyle.Segmented, evh );
-			AddItem( curr, "Quadric", ToolBarIcons.quadric_conn, this.style == GuiConnectionStyle.Quadric, evh );
-			AddItem( curr, "Bezier", ToolBarIcons.curved_conn, this.style == GuiConnectionStyle.Besier, null );
+			parent.AddItem( curr, "Line", ToolBarIcons.straight_conn, this.style == GuiConnectionStyle.Line, evh );
+			parent.AddItem( curr, "Segmented", ToolBarIcons.segmented_conn, this.style == GuiConnectionStyle.Segmented, evh );
+			parent.AddItem( curr, "Quadric", ToolBarIcons.quadric_conn, this.style == GuiConnectionStyle.Quadric, evh );
+			parent.AddItem( curr, "Bezier", ToolBarIcons.curved_conn, this.style == GuiConnectionStyle.Besier, null );
 			m.MenuItems.Add( curr );
 
 			// Type
 			evh = new EventHandler( ChangeTypeClick );
 			curr = new FlatMenuItem( "Type", null, 0, false );
-			AddItem( curr, "Inheritance", ToolBarIcons.conn_inher, this.type == GuiConnectionType.Inheritance, evh );
-			AddItem( curr, "Association", ToolBarIcons.conn_assoc, this.type == GuiConnectionType.Association, evh );
-			AddItem( curr, "Aggregation", ToolBarIcons.conn_aggregation, this.type == GuiConnectionType.Aggregation, evh );
-			AddItem( curr, "Composition", ToolBarIcons.conn_composition, this.type == GuiConnectionType.Composition, evh );
-			AddItem( curr, "Attachment", ToolBarIcons.conn_attachm, this.type == GuiConnectionType.Attachment, evh );
-			AddItem( curr, "Dependancy/Usage", ToolBarIcons.conn_dependence, this.type == GuiConnectionType.Dependency, evh );
-			AddItem( curr, "Realization", ToolBarIcons.conn_realiz, this.type == GuiConnectionType.Realization, evh );
+			parent.AddItem( curr, "Inheritance", ToolBarIcons.conn_inher, this.type == UmlRelationType.Inheritance, evh );
+			parent.AddItem( curr, "Association", ToolBarIcons.conn_assoc, this.type == UmlRelationType.Association, evh );
+			parent.AddItem( curr, "Aggregation", ToolBarIcons.conn_aggregation, this.type == UmlRelationType.Aggregation, evh );
+			parent.AddItem( curr, "Composition", ToolBarIcons.conn_composition, this.type == UmlRelationType.Composition, evh );
+			parent.AddItem( curr, "Attachment", ToolBarIcons.conn_attachm, this.type == UmlRelationType.Attachment, evh );
+			parent.AddItem( curr, "Dependancy/Usage", ToolBarIcons.conn_dependence, this.type == UmlRelationType.Dependency, evh );
+			parent.AddItem( curr, "Realization", ToolBarIcons.conn_realiz, this.type == UmlRelationType.Realization, evh );
 			m.MenuItems.Add( curr );
 
 			// Navigation
 			evh = new EventHandler( ChangeNavigationClick );
 			curr = new FlatMenuItem( "Navigation", null, 0, false );
-			AddItem( curr, "None", ToolBarIcons.None, this.nav == GuiConnectionNavigation.None, evh );
-			AddItem( curr, "Left", ToolBarIcons.None, this.nav == GuiConnectionNavigation.Left, evh );
-			AddItem( curr, "Right", ToolBarIcons.None, this.nav == GuiConnectionNavigation.Right, evh );
-			curr.Enabled = ( this.type == GuiConnectionType.Association || this.type == GuiConnectionType.Aggregation || this.type == GuiConnectionType.Composition );
+			parent.AddItem( curr, "None", ToolBarIcons.None, this.nav == GuiConnectionNavigation.None, evh );
+			parent.AddItem( curr, "Left", ToolBarIcons.None, this.nav == GuiConnectionNavigation.Left, evh );
+			parent.AddItem( curr, "Right", ToolBarIcons.None, this.nav == GuiConnectionNavigation.Right, evh );
+			curr.Enabled = ( this.type == UmlRelationType.Association || this.type == UmlRelationType.Aggregation || this.type == UmlRelationType.Composition );
 			m.MenuItems.Add( curr );
 
 			// Display Options
 			evh = new EventHandler( DisplayOptions );
 			curr = new FlatMenuItem( "Display &Options...", null, 0, false );
-			AddItem( curr, "Show roles", ToolBarIcons.None, ShowRoles, evh );
-			AddItem( curr, "Show connection name", ToolBarIcons.None, conn_name.Visible, evh );
-			AddItem( curr, "Show stereotype", ToolBarIcons.None, conn_stereo.Visible, evh );
-			AddItem( curr, "-", ToolBarIcons.None, false, null );
-			AddItem( curr, "Show all", ToolBarIcons.None, false, evh );
-			AddItem( curr, "Hide all", ToolBarIcons.None, false, evh );
+			parent.AddItem( curr, "Show roles", ToolBarIcons.None, ShowRoles, evh );
+			parent.AddItem( curr, "Show connection name", ToolBarIcons.None, conn_name.Visible, evh );
+			parent.AddItem( curr, "Show stereotype", ToolBarIcons.None, conn_stereo.Visible, evh );
+			parent.AddItem( curr, "-", ToolBarIcons.None, false, null );
+			parent.AddItem( curr, "Show all", ToolBarIcons.None, false, evh );
+			parent.AddItem( curr, "Hide all", ToolBarIcons.None, false, evh );
 			m.MenuItems.Add( curr );
 		}
 
@@ -782,7 +780,7 @@ namespace UMLDes.GUI {
 		#region IStateObject Members
 
 		public class State : ObjectState {
-			public GuiConnectionType type;
+			public UmlRelationType type;
 			public GuiConnectionStyle style;
 			public GuiConnectionNavigation nav;
 			public System.Collections.ArrayList ipoints = new ArrayList();

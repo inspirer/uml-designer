@@ -1,15 +1,31 @@
-TODO
-	создание наследования при помещении класса на диаграмму
-	подписи к связям, возможность убрать, по умолчанию нет для attachement
-	Flat Toolbar: checked, impl: show_qual & operation signature
-	show in tree
-	packages, constraints
-	GuiDelegate, GuiNamespace
-	refresh progress bar
+TODO1
+	stereotype for connections
+	associations for vars
+	st == null fix after refresh
+	import all ns members
+	scroller
+	moved on "deleted"
+	class members selection, menu
+	
+
+
+TODO2
+	constraints
+	GuiDelegate
 	fix: connections while move
 	fix: quadric к углу Memo
-	comments, saving links in comments
+	fix: change line -> quadric, fix linked connections
+	show in tree
 
 optional
 	fix множественного таскания
 	actor
+
+Зависимости (пунктир + стрелка)
+	bind
+	derive
+	refine
+	use
+	---
+	access
+	import

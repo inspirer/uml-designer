@@ -42,7 +42,7 @@ namespace UMLDes.Model {
 		public abstract string Name { get; }
 
 		public string FullName { get { return UmlModel.GetFullQualified(this); } }
-		public string FullQualName { get { return UmlModel.GetUniversal(this); } }
+		public string UniqueName { get { return UmlModel.GetUniversal(this); } }
 
 		[XmlIgnore] public bool Deleted;
 

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Drawing;
 using System.Xml.Serialization;
 using UMLDes.Controls;
+using UMLDes.Model;
 
 namespace UMLDes.GUI {
 
@@ -16,6 +17,7 @@ namespace UMLDes.GUI {
         [ XmlElement("class", typeof(GuiClass)), 
 		  XmlElement("enum", typeof(GuiEnum)),
 		  XmlElement("memo", typeof(GuiMemo)),
+		  XmlElement("package", typeof(GuiPackage)),
 		  XmlElement("relation", typeof(GuiConnection))] 
 		public ArrayList active_objects = new ArrayList();
 
@@ -31,7 +33,6 @@ namespace UMLDes.GUI {
 
 		// list of IAroundObject
 		[XmlIgnore] public ArrayList AroundObjects = new ArrayList();
-
 
 		public StaticView() {
 			this.name = "StaticView1";
@@ -63,34 +64,37 @@ namespace UMLDes.GUI {
 					break;
 				case ToolBarIcons.conn_inher:
 					MouseAgent.current_operation = MouseOperation.DrawConnection;
-					MouseAgent.conn_type = GuiConnectionType.Inheritance;
+					MouseAgent.conn_type = UmlRelationType.Inheritance;
 					break;
 				case ToolBarIcons.conn_assoc:
 					MouseAgent.current_operation = MouseOperation.DrawConnection;
-					MouseAgent.conn_type = GuiConnectionType.Association;
+					MouseAgent.conn_type = UmlRelationType.Association;
 					break;
 				case ToolBarIcons.conn_aggregation:
 					MouseAgent.current_operation = MouseOperation.DrawConnection;
-					MouseAgent.conn_type = GuiConnectionType.Aggregation;
+					MouseAgent.conn_type = UmlRelationType.Aggregation;
 					break;
 				case ToolBarIcons.conn_composition:
 					MouseAgent.current_operation = MouseOperation.DrawConnection;
-					MouseAgent.conn_type = GuiConnectionType.Composition;
+					MouseAgent.conn_type = UmlRelationType.Composition;
 					break;
 				case ToolBarIcons.conn_realiz:
 					MouseAgent.current_operation = MouseOperation.DrawConnection;
-					MouseAgent.conn_type = GuiConnectionType.Realization;
+					MouseAgent.conn_type = UmlRelationType.Realization;
 					break;
 				case ToolBarIcons.conn_attachm:
 					MouseAgent.current_operation = MouseOperation.DrawConnection;
-					MouseAgent.conn_type = GuiConnectionType.Attachment;
+					MouseAgent.conn_type = UmlRelationType.Attachment;
 					break;
 				case ToolBarIcons.conn_dependence:
 					MouseAgent.current_operation = MouseOperation.DrawConnection;
-					MouseAgent.conn_type = GuiConnectionType.Dependency;
+					MouseAgent.conn_type = UmlRelationType.Dependency;
 					break;
 				case ToolBarIcons.memo: 
 					MouseAgent.current_operation = MouseOperation.DrawComment;
+					break;
+				case ToolBarIcons.package:
+					MouseAgent.current_operation = MouseOperation.DrawPackage;
 					break;
 					// line type
 				case ToolBarIcons.straight_conn: 
@@ -129,8 +133,8 @@ namespace UMLDes.GUI {
 			p.AddButton( FlatButtonType.Radio, (int)ToolBarIcons.conn_realiz, "Draw realization", m );
 			p.AddButton( FlatButtonType.Line, 0, null, null );
 			p.AddButton( FlatButtonType.Radio, (int)ToolBarIcons.memo, "Draw memo", m );
+			p.AddButton( FlatButtonType.Radio, (int)ToolBarIcons.package, "Draw package", m );
 			p.AddButton( FlatButtonType.Radio, (int)ToolBarIcons.constraint, "Draw constraint", m ).disabled = true;
-			p.AddButton( FlatButtonType.Radio, (int)ToolBarIcons.package, "Draw package", m ).disabled = true;
 			p.AddButton( FlatButtonType.Radio, (int)ToolBarIcons.actor, "Draw actor", m ).disabled = true;
 			drawingmode = p;
 
@@ -396,17 +400,62 @@ namespace UMLDes.GUI {
             foreach( GuiObject o in active_objects )
 				if( o is IDynamicContent )
 					((IDynamicContent)o).RefreshContent();
+			UpdateConnections();
 			Undo.KillStack();
 		}
 
-		public void NewRelation( GuiClass c1, GuiClass c2, GuiConnectionType t ) {
-			GuiConnection c = new GuiConnection( new GuiConnectionPoint( c1, 1, .5f, 0 ), new GuiConnectionPoint( c2, 3, .5f, 1 ), t, this, MouseAgent.conn_style );
-			c.first.UpdatePosition( true );
-			c.second.UpdatePosition( true );
-			c.DoCreationFixup();
-			c.ConnectionCreated( this );
-			c.Invalidate();
-			Undo.Push( new CreateOperation( c ), false );
+		private void UpdateConnections() {
+
+			// save current connections
+			Hashtable ht = new Hashtable();
+			foreach( GuiObject obj in active_objects ) 
+				if( obj is GuiConnection ) {
+					string id = ((GuiConnection)obj).relation_id;
+					if( id != null )
+						ht[id] = obj;
+				}
+
+			// add new relations
+			for( int i = 0; i < active_objects.Count; i++ ) {
+				GuiObject obj = (GuiObject)active_objects[i];
+				if( obj is GuiClass ) {
+					foreach( UmlRelation rel in RelationsHelper.GetRelations( ((GuiClass)obj).st, proj.model ) ) {
+						if( ht.ContainsKey( rel.ID ) )
+							ht.Remove( rel.ID );
+						else {
+							NewRelation( rel );
+						}
+					}
+				}
+			}
+
+			// remove old
+			foreach( GuiConnection old_conn in ht.Values ) {
+				Destroy((IRemoveable)old_conn);
+			}
+		}
+
+		public void NewRelation( UmlRelation rel ) {
+			GuiClass c1 = FindClass(rel.src), c2 = FindClass(rel.dest);
+			if( c1 != null && c2 != null ) {
+				GuiConnection c = new GuiConnection( new GuiConnectionPoint( c1, 1, .5f, 0 ), new GuiConnectionPoint( c2, 3, .5f, 1 ), rel.type, this, rel.type == UmlRelationType.Attachment ? GuiConnectionStyle.Line : MouseAgent.conn_style );
+				c.relation_id = rel.ID;
+				c.first.UpdatePosition( true );
+				c.second.UpdatePosition( true );
+				c.DoCreationFixup();
+				c.ConnectionCreated( this, rel.src_role, rel.dest_role, rel.name, rel.stereo );
+				Undo.Push( new CreateOperation( c ), false );
+			}
+		}
+
+		public GuiClass FindClass( UmlClass cl ) {
+			foreach( GuiObject obj in active_objects ) {
+                GuiClass gcl = obj as GuiClass;
+				if( gcl != null && gcl.st == cl )
+					return gcl;				
+			}
+
+			return null;
 		}
 
 		public void AddObject( GuiItem item, string name_base ) {
@@ -416,6 +465,40 @@ namespace UMLDes.GUI {
 			item.id = RegisterItemID( name_base, item );
 			item.Invalidate();
 			Undo.Push( new CreateOperation( (IRemoveable)item ), false );
+
+			// add relations
+			if( item is GuiClass ) {
+				GuiClass cl = (GuiClass)item;
+				for( int i = 0; i < active_objects.Count; i++ ) {
+					GuiObject obj = (GuiObject)active_objects[i];
+					if( obj is GuiClass )
+						foreach( UmlRelation rel in RelationsHelper.GetRelations( ((GuiClass)obj).st, proj.model ) )
+							if( rel.dest == cl.st || rel.src == cl.st )
+								NewRelation( rel );
+				}
+			}
 		}
+
+		#region Menu helper functions
+
+		public void AddItem( UMLDes.Controls.FlatMenuItem fmi, string text, ToolBarIcons icon, bool Checked, EventHandler click_handler ) {
+			UMLDes.Controls.FlatMenuItem curr = new UMLDes.Controls.FlatMenuItem( text, icon != ToolBarIcons.None ? proj.icon_list : null, (int)icon, Checked );
+			if( click_handler != null )
+				curr.Click += click_handler;
+			else
+				curr.Enabled = false;
+			fmi.MenuItems.Add( curr );
+		}
+
+		public void AddItem( System.Windows.Forms.ContextMenu cm, string text, ToolBarIcons icon, bool Checked, EventHandler click_handler ) {
+			UMLDes.Controls.FlatMenuItem curr = new UMLDes.Controls.FlatMenuItem( text, icon != ToolBarIcons.None ? proj.icon_list : null, (int)icon, Checked );
+			if( click_handler != null )
+				curr.Click += click_handler;
+			else
+				curr.Enabled = false;
+			cm.MenuItems.Add( curr );
+		}
+
+		#endregion
 	}
 }

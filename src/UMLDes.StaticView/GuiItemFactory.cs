@@ -16,6 +16,8 @@ namespace UMLDes.GUI {
 				return GuiClass.fromUML( obj as UmlClass );
 			else if( obj is UmlEnum )
 				return GuiEnum.fromUML( obj as UmlEnum );
+			else if( obj is UmlNamespace )
+				return GuiPackage.fromUML( obj as UmlNamespace );
 			else
 				return null;
 		}
@@ -33,6 +35,17 @@ namespace UMLDes.GUI {
 			m.X = x;
 			m.Y = y;
 			parent.AddObject( m, "memo" );
+			return m;
+		}
+
+		public static GuiPackage CreatePackage( StaticView parent, int x, int y ) {
+			GuiPackage m = new GuiPackage();
+			m.name = "Package1";
+			m.source_dependant = false;
+			m.X = x;
+			m.Y = y;
+			m.Created();
+			parent.AddObject( m, "package" );
 			return m;
 		}
 	}

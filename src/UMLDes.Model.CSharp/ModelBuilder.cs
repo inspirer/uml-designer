@@ -747,7 +747,7 @@ namespace UMLDes.Model.CSharp {
 				member.Deleted = false;
 			}
 
-			member.visibility = UmlVisibility.Private;
+			member.visibility = cl.Kind == UmlKind.Interface ? UmlVisibility.Public : UmlVisibility.Private;
 			if( mod != null ) {
 				if( (mod.value & (int)Modifiers.Internal) != 0 && (mod.value & (int)Modifiers.Protected) != 0 )
 					member.visibility = UmlVisibility.ProtectedInternal;

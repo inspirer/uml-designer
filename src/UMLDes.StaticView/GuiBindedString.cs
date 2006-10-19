@@ -8,8 +8,10 @@ using UMLDes.Controls;
 
 namespace UMLDes.GUI {
 
-	public class GuiBindedString : GuiBinded, ISelectable, IMoveable, IDropMenu, IStateObject, INeedRefresh {
-		[XmlAttribute] public string name;
+	/// <summary>
+	/// GuiBindedStringObject is root class for all signs around connection, it draws string in the rectangle
+	/// </summary>
+	public abstract class GuiBindedStringObject : GuiBinded, ISelectable, IMoveable, IDropMenu, IStateObject, INeedRefresh {
 		[XmlAttribute] public int pos_x, pos_y;
 		[XmlAttribute] public int ux_bind;
 		[XmlAttribute] public float uy_bind;
@@ -19,22 +21,8 @@ namespace UMLDes.GUI {
 		const int NAME_SPACING_Y = 1;
 		const int inflate = 2;
 
-		[XmlIgnore] public string Title {
-			get { 
-				if( name != null && name.StartsWith( "\x00AB" ) && name.EndsWith( "\xBB" ) )
-					return name.Substring( 1, name.Length - 2 );
-				return name; 
-			}
-			set {
-				if( value != name ) {
-					if( name != null && name.StartsWith( "\x00AB" ) && name.EndsWith( "\xBB" ) )
-						name = "\x00AB" + value + "\xBB";
-					else
-						name = value;
-					parent.RefreshObject(this);
-				}
-			}
-		}
+		protected abstract string Text { get; set; }
+		protected abstract string ToDisplay { get; }
 
 		public override bool Hidden {
 			get {
@@ -44,10 +32,10 @@ namespace UMLDes.GUI {
 
 		[XmlIgnore] public ArrayList Associated { get { return null; } }
 
-		public GuiBindedString() {
+		public GuiBindedStringObject() {
 		}
 
-		public GuiBindedString( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) {
+		public GuiBindedStringObject( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) {
 
 			root = pt;
 			parent = root.parent;
@@ -58,7 +46,7 @@ namespace UMLDes.GUI {
 			this.hidden = hidden;
 
 			RecalculatePosition();
-			Title = s;
+			Text = s;
 		}
 
 		public void Moving(int x, int y, ref int ux, ref float uy) {
@@ -125,7 +113,7 @@ namespace UMLDes.GUI {
 		}
 
 		public void RefreshView( Graphics g ) {
-			SizeF size = g.MeasureString( name, parent.cview.GetFont( FontTypes.ROLE_NAME, FontStyle.Regular ),
+			SizeF size = g.MeasureString( ToDisplay, parent.cview.GetFont( FontTypes.ROLE_NAME, FontStyle.Regular ),
 				1000, parent.cview.GetStringFormat( FormatTypes.CENTER ) );
 			place.Width = (int)size.Width+1 + NAME_SPACING_X * 2 + inflate*2;
 			place.Height = (int)size.Height+1 + NAME_SPACING_Y * 2 + inflate*2;
@@ -141,7 +129,7 @@ namespace UMLDes.GUI {
 		#region Paint, Invalidate
 
 		public override void Paint(Graphics g, Rectangle r, int offx, int offy) {
-			if( name != null ) {
+			if( ToDisplay != null ) {
 
 				Rectangle rect = place;
 				rect.X += r.X - offx;
@@ -155,7 +143,7 @@ namespace UMLDes.GUI {
 				}
 
 
-				g.DrawString( name, parent.cview.GetFont( FontTypes.ROLE_NAME, FontStyle.Regular ), 
+				g.DrawString( ToDisplay, parent.cview.GetFont( FontTypes.ROLE_NAME, FontStyle.Regular ), 
 					b, rect.X + inflate + NAME_SPACING_X+1, rect.Y + inflate + NAME_SPACING_Y+1 );
 
 				if( selected ) {
@@ -215,13 +203,13 @@ namespace UMLDes.GUI {
 		public void Edited( string ns ) {
 			ObjectState before = GetState();
 			Invalidate();
-			Title = ns;
+			Text = ns;
 			Invalidate();
 			parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
 		}
 
 		public void RenameClick( object o, EventArgs ev ) {
-			InPlaceTextEdit.Start( "Rename", Title, parent.cview.point_to_screen(place.X, place.Y), Math.Max( place.Width+20, 70 ), place.Height, parent.cview, new StringEditedEvent( Edited ), false );
+			InPlaceTextEdit.Start( "Rename", Text, parent.cview.point_to_screen(place.X, place.Y), Math.Max( place.Width+20, 70 ), place.Height, parent.cview, new StringEditedEvent( Edited ), false );
 		}
 
 		internal bool Visible {
@@ -241,25 +229,22 @@ namespace UMLDes.GUI {
 		}
 
 		public void AddMenuItems( System.Windows.Forms.ContextMenu m, int x, int y ) {
-			FlatMenuItem rename = new FlatMenuItem( "Rename", null, 0, false );
-			rename.Click += new EventHandler( RenameClick );
-			m.MenuItems.Add( rename );
-
-			FlatMenuItem hide = new FlatMenuItem( "Hide", null, 0, false );
-			hide.Click += new EventHandler(Hide);
-			m.MenuItems.Add( hide );
+			parent.AddItem( m, "Edit text", ToolBarIcons.None, false, new EventHandler( RenameClick ) );
+			parent.AddItem( m, "Hide", ToolBarIcons.None, false, new EventHandler( Hide ) );
 		}
 
 		#endregion
 
 		#region IStateObject Members
 
-		class State : ObjectState {
+		protected class State : ObjectState {
 			public string name;
 			public int ux, x, y;
 			public float uy;
 			public Rectangle place;
 			public bool hidden;
+
+			public object o1, o2, o3;
 		}
 
 		public void Apply(ObjectState v) {
@@ -269,11 +254,13 @@ namespace UMLDes.GUI {
 			uy_bind = t.uy;
 			pos_x = t.x;
 			pos_y = t.y;
-			name = t.name;
 			place = t.place;
 			hidden = t.hidden;
+			doApply( t );
 			Invalidate();
 		}
+
+		protected abstract void doApply( State t );
 
 		public ObjectState GetState() {
 			State t = new State();
@@ -281,13 +268,99 @@ namespace UMLDes.GUI {
 			t.uy = uy_bind;
 			t.x = pos_x;
 			t.y = pos_y;
-			t.name = name;
 			t.place = place;
 			t.hidden = hidden;
+			FillState( t );
 			return t;
 		}
 
+		protected abstract void FillState( State t );
+
 		#endregion
 
+	}
+
+	/// <summary>
+	/// Simple string
+	/// </summary>
+	public class GuiBindedString : GuiBindedStringObject {
+		public GuiBindedString() {}
+		public GuiBindedString( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) : base( s, pt, x, y, ux, uy, hidden ) {
+		}
+
+		[XmlAttribute] public string name;
+
+		[XmlIgnore] protected override string Text {
+			get { 
+				return name; 
+			}
+			set {
+				if( value != name ) {
+					name = value;
+					parent.RefreshObject(this);
+				}
+			}
+		}
+
+		protected override string ToDisplay {
+			get {
+				return name;
+			}
+		}
+
+
+		#region State
+
+		protected override void doApply(UMLDes.GUI.GuiBindedStringObject.State t) {
+            name = (string)t.o1;
+		}
+
+		protected override void FillState(UMLDes.GUI.GuiBindedStringObject.State t) {
+			t.o1 = name;
+		}
+
+		#endregion
+	}
+
+	/// <summary>
+	/// Stereotype container
+	/// </summary>
+	public class GuiBindedStereotype : GuiBindedStringObject {
+		public GuiBindedStereotype() {}
+		public GuiBindedStereotype( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) : base( s, pt, x, y, ux, uy, hidden ) {
+		}
+
+		[XmlAttribute] public string stereo;
+
+		[XmlIgnore] protected override string Text {
+			get { 
+				return stereo; 
+			}
+			set {
+				if( value != stereo ) {
+					stereo = value;
+					parent.RefreshObject(this);
+				}
+			}
+		}
+
+		protected override string ToDisplay {
+			get {
+				return "\xAB"+stereo+"\xBB";
+			}
+		}
+
+
+		#region State
+
+		protected override void doApply(UMLDes.GUI.GuiBindedStringObject.State t) {
+			stereo = (string)t.o1;
+		}
+
+		protected override void FillState(UMLDes.GUI.GuiBindedStringObject.State t) {
+			t.o1 = stereo;
+		}
+
+		#endregion
 	}
 }

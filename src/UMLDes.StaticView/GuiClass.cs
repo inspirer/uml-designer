@@ -11,12 +11,13 @@ namespace UMLDes.GUI {
 	/// <summary>
 	/// UML representation of class (classificator)
 	/// </summary>
-	public class GuiClass : GuiRectangle, IStateObject, IDropMenu {
+	public class GuiClass : GuiRectangle, IStateObject, IDropMenu, IHasStereotype {
 
-		[XmlAttribute] public bool show_members = true, show_vars = true, show_properties = true;
+		[XmlAttribute] public bool show_members = true, show_vars = true, show_properties = true, show_only_public = false;
 		[XmlAttribute] public bool show_full_qual = false, show_method_signatures = false;
 
 		[XmlIgnore] public UmlClass st;
+		[XmlAttribute] public string stereo;
 
 		public GuiClass() {
 			parent = null;
@@ -32,10 +33,21 @@ namespace UMLDes.GUI {
 				l.Add( new GuiString( FontStyle.Regular, FontTypes.DEFAULT, true, "\x00ABdeleted\xBB" ) );
 				l.Add( new GuiString( (st != null && st.IsAbstract ? FontStyle.Italic : 0) | FontStyle.Bold, FontTypes.DEFAULT, true, name ) );
 				return;
-			} else if( st.Kind == UmlKind.Interface )
-				l.Add( new GuiString( FontStyle.Regular, FontTypes.DEFAULT, true, "\x00ABinterface\xBB" ) );
+			} 
+			
+			string stereotype = null;
+			if( st.Kind == UmlKind.Interface )
+				stereotype = "interface";
 			else if( st.Kind == UmlKind.Struct )
-				l.Add( new GuiString( FontStyle.Regular, FontTypes.DEFAULT, true, "\x00ABstruct\xBB" ) );
+				stereotype = "structure";
+
+			if( stereotype == null )
+				stereotype = stereo;
+			else if( stereo != null )
+				stereotype += ", " + stereo;
+
+			if( stereotype != null )
+				l.Add( new GuiString( FontStyle.Regular, FontTypes.DEFAULT, true, "\x00AB"+stereotype+"\xBB" ) );
 
 			l.Add( new GuiString( (st != null && st.IsAbstract ? FontStyle.Italic : 0) | FontStyle.Bold, FontTypes.DEFAULT, true, name ) );
 
@@ -43,7 +55,7 @@ namespace UMLDes.GUI {
 				l.Add( new GuiString() );
 				if( st.Members != null )
 					foreach( UmlMember m in st.Members )
-						if( m.MemberKind == UmlMemberKind.Attributes )
+						if( m.MemberKind == UmlMemberKind.Attributes && (!show_only_public || m.visibility == UmlVisibility.Public ) )
 							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
 			}
 
@@ -51,7 +63,7 @@ namespace UMLDes.GUI {
 				l.Add( new GuiString() );
 				if( st.Members != null )
 					foreach( UmlMember m in st.Members )
-						if( m.MemberKind == UmlMemberKind.Operations )
+						if( m.MemberKind == UmlMemberKind.Operations && (!show_only_public || m.visibility == UmlVisibility.Public ) )
 							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
 			}
 
@@ -59,7 +71,7 @@ namespace UMLDes.GUI {
 				l.Add( new GuiString() );
 				if( st.Members != null )
 					foreach( UmlMember m in st.Members )
-						if( m.MemberKind == UmlMemberKind.Properties )
+						if( m.MemberKind == UmlMemberKind.Properties && (!show_only_public || m.visibility == UmlVisibility.Public ) )
 							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
 			}
 
@@ -71,7 +83,7 @@ namespace UMLDes.GUI {
 
 		public static GuiClass fromUML( UmlClass st ) {
 			GuiClass s = new GuiClass();
-			s.name = st.FullQualName;
+			s.name = st.UniqueName;
 			s.st = st;
 			s.Created();
 			return s;
@@ -88,12 +100,12 @@ namespace UMLDes.GUI {
 
 		class State : ObjectState {
 			public int x, y;
-			public bool b1, b2, b3, b4, b5;
+			public bool b1, b2, b3, b4, b5, b6;
+			public string stereo;
 		}
 
 		public void Apply(ObjectState v) {
 			State t = v as State;
-			Invalidate();
 			X = t.x;
 			Y = t.y;
 			show_members = t.b1;
@@ -101,8 +113,9 @@ namespace UMLDes.GUI {
 			show_properties = t.b3;
 			show_full_qual = t.b4;
 			show_method_signatures = t.b5;
+			show_only_public = t.b6;
+			stereo = t.stereo;
 			RefreshContent();
-			Invalidate();
 		}
 
 		public ObjectState GetState() {
@@ -114,6 +127,8 @@ namespace UMLDes.GUI {
 			t.b3 = show_properties;
 			t.b4 = show_full_qual;
 			t.b5 = show_method_signatures;
+			t.b6 = show_only_public;
+			t.stereo = stereo;
 			return t;
 		}
 
@@ -139,6 +154,9 @@ namespace UMLDes.GUI {
 				case 4:	// method signatures
 					show_method_signatures = !show_method_signatures;
 					break;
+				case 5: // only public
+					show_only_public = !show_only_public;
+					break;
 				default:
 					return;
 			}
@@ -150,8 +168,10 @@ namespace UMLDes.GUI {
 		private bool ancest;
 
 		public void ImportClass( UmlClass cl ) {
-            GuiClass gc = GuiElementFactory.CreateClass( parent, x_coord_counter, ancest ? Y - 100 : Y + Height + 100, cl );
-			x_coord_counter += 20 + gc.Width;
+			if( parent.FindClass( cl ) == null ) {
+				GuiClass gc = GuiElementFactory.CreateClass( parent, x_coord_counter, ancest ? Y - 100 : Y + Height + 100, cl );
+				x_coord_counter += 20 + gc.Width;
+			}
 		}
 
 		public void VisitClassAndImport( UmlObject v, UmlObject parent ) {
@@ -195,20 +215,66 @@ namespace UMLDes.GUI {
 			// Display Options
 			evh = new EventHandler( DisplayOptions );
 			curr = new FlatMenuItem( "Display &Options...", null, 0, false );
-			AddItem( curr, "&Attributes", ToolBarIcons.show_attrs, show_vars, evh );
-			AddItem( curr, "&Operations", ToolBarIcons.show_opers, show_members, evh );
-			AddItem( curr, "&Properties", ToolBarIcons.show_properties, show_properties, evh );
-			AddItem( curr, "Show full &qualified name", ToolBarIcons.show_qual, show_full_qual, evh );
-			AddItem( curr, "Show operations &signature", ToolBarIcons.oper_signature, show_method_signatures, evh );
+			parent.AddItem( curr, "&Attributes", ToolBarIcons.show_attrs, show_vars, evh );
+			parent.AddItem( curr, "&Operations", ToolBarIcons.show_opers, show_members, evh );
+			parent.AddItem( curr, "&Properties", ToolBarIcons.show_properties, show_properties, evh );
+			parent.AddItem( curr, "Show full &qualified name", ToolBarIcons.show_qual, show_full_qual, evh );
+			parent.AddItem( curr, "Show operations &signature", ToolBarIcons.oper_signature, show_method_signatures, evh );
+			parent.AddItem( curr, "Only public", ToolBarIcons.None, show_only_public, evh );
 			m.MenuItems.Add( curr );
 
 			evh = new EventHandler( Import );
 			curr = new FlatMenuItem( "Import", parent.proj.icon_list, (int)ToolBarIcons.add_related, false );
-			AddItem( curr, "Import ancestor && interfaces", ToolBarIcons.None, false, evh );
-			AddItem( curr, "Import successors", ToolBarIcons.None, false, evh );
+			parent.AddItem( curr, "Import ancestor && interfaces", ToolBarIcons.None, false, evh );
+			parent.AddItem( curr, "Import successors", ToolBarIcons.None, false, evh );
 			m.MenuItems.Add( curr );
 
+			m.MenuItems.Add( new StereoTypeHelper( this ).GetStereoMenu() );
 
+		}
+
+		#endregion
+
+		#region IHasStereotype Members
+
+		static string[] stereo_list = new string[] {
+			"actor",
+			"exception",
+			"signal",
+			"process",
+			"thread",
+			"type",
+			null,
+			"metaclass",
+			"powertype",
+			"stereotype",
+			"utility",
+		};
+
+		string[] IHasStereotype.StereoList {
+			get {
+				return stereo_list;
+			}
+		}
+
+		string IHasStereotype.Stereo {
+			get {
+				return stereo;
+			}
+			set {
+				if( stereo != value ) {
+					ObjectState before = GetState();
+					stereo = value;
+					RefreshContent();
+					parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
+				}
+			}
+		}
+
+		Rectangle IHasStereotype.EditRect { 
+			get {
+				return new Rectangle( place.X+inflate+1, place.Y+inflate+1, place.Width, 0 );
+			}
 		}
 
 		#endregion

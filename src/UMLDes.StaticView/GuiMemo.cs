@@ -7,9 +7,9 @@ using UMLDes.Controls;
 
 namespace UMLDes.GUI {
 
-	public class GuiMemo : GuiPolygonItem, IStateObject, IDropMenu {
+	public class GuiMemo : GuiPolygonItem, IStateObject, IDropMenu, IHasStereotype {
 
-		public string text;
+		public string text, stereo;
 
 		public GuiMemo() {
 			parent = null;
@@ -24,7 +24,7 @@ namespace UMLDes.GUI {
 
 
 		public const int padding = 10, line_space = 2, vpadding = 6, angle = 12;
-		SizeF text_size;
+		SizeF text_size, stereo_size;
 
 		/// <summary>
 		/// Calculates width and height of object
@@ -33,9 +33,15 @@ namespace UMLDes.GUI {
 		public override void RefreshView( Graphics g ) {
 			int width = 50, height = 0;
 
+			if( stereo != null ) {
+				stereo_size = g.MeasureString( "\x00AB"+stereo+"\xBB", parent.cview.GetFont(FontTypes.ROLE_NAME, FontStyle.Regular) );
+				width = Math.Max( (int)stereo_size.Width + 2*padding, width );
+				height += (int)stereo_size.Height;
+			}
+
 			text_size = g.MeasureString( text, parent.cview.GetFont(FontTypes.DEFAULT, FontStyle.Regular) );
 			width = Math.Max( (int)text_size.Width + 2*padding, width );
-			height = (int)text_size.Height + 2*vpadding;
+			height += (int)text_size.Height + 2*vpadding;
 
 			Width = width;
 			Height = height;
@@ -47,6 +53,12 @@ namespace UMLDes.GUI {
 			int textdx, curr_y = y + vpadding;
 			g.DrawLine( Pens.Black, x + Width - angle, y, x + Width - angle, y + angle );
 			g.DrawLine( Pens.Black, x + Width - angle, y + angle, x + Width, y + angle );
+
+			if( stereo != null ) {
+				textdx = ( Width - (int)stereo_size.Width ) / 2;
+				g.DrawString( "\x00AB"+stereo+"\xBB", parent.cview.GetFont(FontTypes.ROLE_NAME,FontStyle.Regular), Brushes.Black, x + textdx, curr_y-2 );
+				curr_y += (int)stereo_size.Height;
+			}
 
 			textdx = ( Width - (int)text_size.Width ) / 2;
 			g.DrawString( text, parent.cview.GetFont(FontTypes.DEFAULT,FontStyle.Regular), Brushes.Black, x + textdx, curr_y );
@@ -80,9 +92,8 @@ namespace UMLDes.GUI {
 		}
 
 		public void AddMenuItems( System.Windows.Forms.ContextMenu m, int x, int y ) {
-			FlatMenuItem rename = new FlatMenuItem( "Rename", parent.proj.icon_list, 0, false );
-			rename.Click += new EventHandler( RenameClick );
-			m.MenuItems.Add( rename );
+			parent.AddItem( m, "Edit text", ToolBarIcons.None, false, new EventHandler( RenameClick ) );
+			m.MenuItems.Add( new StereoTypeHelper(this).GetStereoMenu() );
 		}
 
 		#endregion
@@ -91,13 +102,14 @@ namespace UMLDes.GUI {
 
 		class State : ObjectState {
 			public int x, y;
-			public string text;
+			public string text, stereo;
 		}
 
 		public void Apply(ObjectState v) {
 			State t = v as State;
 			X = t.x;
 			Y = t.y;
+			stereo = t.stereo;
 			text = t.text;
 			StateChanged();
 		}
@@ -107,7 +119,48 @@ namespace UMLDes.GUI {
 			t.x = X;
 			t.y = Y;
 			t.text = text;
+			t.stereo = stereo;
 			return t;
+		}
+
+		#endregion
+
+		#region IHasStereotype Members
+
+		static string[] stereo_list = new string[] {
+			"requirement",
+			"responsibility",
+			"semantics",
+            null,
+			"precondition",
+			"postcondition",
+			"invariant"
+		};
+
+		string[] IHasStereotype.StereoList {
+			get {
+				return stereo_list;
+			}
+		}
+
+		string IHasStereotype.Stereo {
+			get {
+				return stereo;
+			}
+			set {
+				if( stereo != value ) {
+					ObjectState before = GetState();
+					stereo = value;
+					StateChanged();
+					parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
+				}
+			}
+		}
+
+		Rectangle IHasStereotype.EditRect { 
+			get {
+				return new Rectangle( place.X+inflate+1, place.Y+inflate+1, place.Width, 0 );
+			}
 		}
 
 		#endregion
