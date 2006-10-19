@@ -191,6 +191,12 @@ namespace UMLDes {
 			container.UpdateToolBar();
 		}
 
+		ImageList GUI.ISolution.project_icon_list {
+			get {
+				return container.treeImages;
+			}
+		}
+
 		#endregion
 	}
 }

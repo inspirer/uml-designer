@@ -13,6 +13,9 @@ namespace UMLDes.GUI {
 		[XmlIgnore] public Rectangle place;
 		[XmlIgnore]	public StaticView parent;
 
+		[XmlIgnore]	public virtual bool Hidden { get { return false; } set {} }
+		[XmlIgnore] public virtual bool RawHidden { get { return Hidden; } }
+
 		#region children
 
 		[
@@ -90,6 +93,18 @@ namespace UMLDes.GUI {
 			parent.cview.InvalidatePage( place );
 		}
 
+		public virtual Rectangle ContainingRect {
+			get {
+				if( children != null ) {
+					Rectangle sum = place;
+					foreach( GuiBinded b in children )
+						sum = Rectangle.Union( b.ContainingRect, sum );
+					return sum;
+				} else 
+					return place;
+			}
+		}
+
 		public abstract void Paint( Graphics g, Rectangle r, int offx, int offy );
 		// loading
 		public virtual void PostLoad() {
@@ -124,12 +139,12 @@ namespace UMLDes.GUI {
 		[XmlAttribute] public string id;
 
 		public string ID { get { return id; } }
+		abstract public string Name { get; }
 	}
 
 	public abstract class GuiBinded : GuiObject {
 		[XmlIgnore] public GuiObject root;
 		[XmlAttribute] public string type;
-		public virtual bool Hidden { get { return false; } }
 
 		public virtual void ParentChanged() { }
 		public virtual void UpdateCoords( GuiObject orig ) {}

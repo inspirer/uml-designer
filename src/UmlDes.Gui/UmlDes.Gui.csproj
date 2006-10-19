@@ -125,7 +125,7 @@
                 />
                 <File
                     RelPath = "main.cs"
-                    SubType = "Code"
+                    SubType = "Form"
                     BuildAction = "Compile"
                 />
                 <File

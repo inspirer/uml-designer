@@ -45,8 +45,15 @@ namespace UMLDes.GUI {
 		[XmlIgnore] public GuiBindedString conn_name;
 		[XmlIgnore] public GuiBindedStereotype conn_stereo;
 		[XmlAttribute] public string relation_id;
+		[XmlAttribute] public bool hidden;
 
 		const int MINIMUM_DISTANCE = 10;
+
+		public override string Name {
+			get {
+				return type + ": " + ((GuiActive)first.item).Name + " <-> " + ((GuiActive)second.item).Name;
+			}
+		}
 
 		[XmlAttribute] public GuiConnectionStyle style { 
 			get { 
@@ -67,15 +74,6 @@ namespace UMLDes.GUI {
 						throw new Exception( "wrong style" );
 				}
 			}
-		}
-
-		[XmlIgnore] public ArrayList Associated { 
-			get { 
-				ArrayList l = new ArrayList();
-				foreach( GuiConnectionPoint p in cpoints )
-					l.Add( p.root );
-				return l;
-			} 
 		}
 
 		public void EndPointPositionChanging( GuiConnectionPoint movepoint ) {
@@ -217,7 +215,7 @@ namespace UMLDes.GUI {
 
 		#endregion
 
-		#region Paint, Invalidate, DrawTemporary
+		#region Paint, Invalidate, DrawTemporary, ContainingRect
 
 		public override void Paint( Graphics g, Rectangle r, int offx, int offy ) {
 			switch( style ) {
@@ -373,6 +371,20 @@ namespace UMLDes.GUI {
 				second.Invalidate();
 		}
 
+		public override Rectangle ContainingRect {
+			get {
+				Rectangle r = new Rectangle(first.x - decor_size, first.y - decor_size, 2*decor_size, 2*decor_size);
+				for( int i = 1; i < ipoints.Count; i++ )
+					r = Rectangle.Union( r, new Rectangle(((GuiPoint)ipoints[i]).x - decor_size, ((GuiPoint)ipoints[i]).y - decor_size, 2*decor_size, 2*decor_size) );
+
+				if( children != null )
+					foreach( GuiBinded b in children )
+						r = Rectangle.Union( b.ContainingRect, r );
+				return r;
+			}
+		}
+
+
 		#endregion
 
 		#region "Fixup functions: CheckIntersection, PostLoad, ConnectionCreated, DoCreationFixup"
@@ -477,12 +489,8 @@ namespace UMLDes.GUI {
 
 			switch( style ) {
 				case GuiConnectionStyle.Line:
-					if( sel.IntersectsWith( place ) ) {
-						res = true;
-					}
 					break;
 				case GuiConnectionStyle.Segmented:
-					// TODO
 					break;
 				default:
 					break;
@@ -785,6 +793,7 @@ namespace UMLDes.GUI {
 			public GuiConnectionNavigation nav;
 			public System.Collections.ArrayList ipoints = new ArrayList();
 			public ObjectState p1, p2;
+			public bool hidden;
 		}
 
 
@@ -817,6 +826,7 @@ namespace UMLDes.GUI {
 			notify_children();
 			invalidate_children();
 			Invalidate();
+			SetHidden( state.hidden ); 
 		}
 
 		public ObjectState GetState() {         
@@ -824,12 +834,54 @@ namespace UMLDes.GUI {
 			st.type = type;
 			st.style = style;
 			st.nav = nav;
+			st.hidden = hidden;
 			
 			for( int i = 1; i < ipoints.Count - 1; i++ )
 				st.ipoints.Add( (ipoints[i] as GuiIntermPoint).Clone() );
 			st.p1 = first.GetState();
 			st.p2 = second.GetState();
 			return st;
+		}
+
+		[XmlIgnore] public ArrayList Associated { 
+			get { 
+				ArrayList l = new ArrayList();
+				foreach( GuiConnectionPoint p in cpoints )
+					l.Add( p.root );
+				return l;
+			} 
+		}
+
+		#endregion
+
+		#region Hidden
+
+		[XmlIgnore] public override bool Hidden {
+			get {
+				return ( hidden || ((GuiObject)first.item).Hidden || ((GuiObject)second.item).Hidden );
+			}
+			set {
+				if( hidden != value ) {
+					ObjectState before = GetState();
+					SetHidden( value );
+					parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
+				}
+			}
+		}
+
+		[XmlIgnore] public override bool RawHidden {
+			get {
+				return hidden;
+			}
+		}
+
+		protected void SetHidden( bool val ) {
+			if( val != hidden ) {
+				hidden = val;
+				Invalidate();
+				invalidate_children();
+				parent.InvalidateAllAssociated( this );
+			}
 		}
 
 		#endregion

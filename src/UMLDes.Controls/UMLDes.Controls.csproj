@@ -124,6 +124,16 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "ShowHideDialog.cs"
+                    SubType = "Form"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "ShowHideDialog.resx"
+                    DependentUpon = "ShowHideDialog.cs"
+                    BuildAction = "EmbeddedResource"
+                />
+                <File
                     RelPath = "Win32.cs"
                     SubType = "Code"
                     BuildAction = "Compile"

@@ -64,7 +64,7 @@ namespace UMLDes.GUI {
 
 		class State : ObjectState {
 			public int x, y;
-			public bool b1, b2;
+			public bool b1, b2, hidden;
 			public string name, stereo;
 		}
 
@@ -77,6 +77,7 @@ namespace UMLDes.GUI {
 			name = t.name;
 			stereo = t.stereo;
 			RefreshContent();
+			SetHidden( t.hidden ); 
 		}
 
 		public ObjectState GetState() {
@@ -87,6 +88,7 @@ namespace UMLDes.GUI {
 			t.b2 = show_full_qual;
 			t.name = name;
 			t.stereo = stereo;
+			t.hidden = hidden;
 			return t;
 		}
 

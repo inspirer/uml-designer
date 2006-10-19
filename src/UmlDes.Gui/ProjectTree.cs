@@ -28,7 +28,7 @@ namespace UMLDes.Controls {
 
 		#endregion
 
-		#region Name/Icon for UmlObject
+		#region Name for Object
 
 		string getName( object obj ) {
 			if( obj is UmlObject )
@@ -44,71 +44,13 @@ namespace UMLDes.Controls {
 			return null;
 		}
 
-		/// <summary>
-		/// determines the visibility of the element (looks at modifiers)
-		/// </summary>
-		/// <param name="e">C# element</param>
-		/// <returns>0 - public, 1 - private, 2 - protected</returns>
-		int access_of_modifier( UmlObject e ) {
-			if( e is UmlMember ) 
-				switch( ((UmlMember)e).visibility ) {
-					case UmlVisibility.Public:
-						return 0;
-					case UmlVisibility.Internal:
-					case UmlVisibility.Private:
-						return 1;
-					case UmlVisibility.Protected:
-					case UmlVisibility.ProtectedInternal:
-						return 2;
-				}
-			else if( e is UmlClass )
-				return 0; // TODO
-			return 1;
-		}
-		
-		/// <summary>
-		/// returns the number of icon for the given element
-		/// </summary>
-		/// <param name="e">C# element</param>
-		int IconForElement( UmlObject e ) {
-			switch( e.Kind ) {
-				case UmlKind.Project:
-					return 1;
-				case UmlKind.Namespace:
-					return 5;
-				case UmlKind.Class:
-					return 6 + access_of_modifier(e);
-				case UmlKind.Interface:
-					return 9 + access_of_modifier(e);
-				case UmlKind.Struct:
-					return 12 + access_of_modifier(e);
-				case UmlKind.Method: case UmlKind.Constructor: case UmlKind.Destructor:
-					return 15 + access_of_modifier(e);
-				case UmlKind.Delegate:
-					return 18 + access_of_modifier(e);
-				case UmlKind.Enum:
-					return 21 + access_of_modifier(e);
-				case UmlKind.Field: case UmlKind.Constant:
-					return 25 + access_of_modifier(e);
-				case UmlKind.Event:
-					return 28 + access_of_modifier(e);
-				case UmlKind.Indexer:
-					return 31 + access_of_modifier(e);
-				case UmlKind.Operator:
-					return 34;
-			}
-			
-			// unknown element, strange
-			return 24; 
-		}
-
 		#endregion
 
 		#region Adding/Merging nodes
 
 		void add_nodes( TreeNodeCollection nodes, ArrayList l, int param ) {
 			foreach( object o in l ) {
-				int icon = param >= 0 ? param : IconForElement( (UmlObject)o );
+				int icon = param >= 0 ? param : UMLDes.GUI.IconUtility.IconForElement( (UmlObject)o );
 				TreeNode t = new TreeNode( getName(o), icon, icon );
 				t.Tag = new NodeTag( o );
 				if( param == 1 ) {

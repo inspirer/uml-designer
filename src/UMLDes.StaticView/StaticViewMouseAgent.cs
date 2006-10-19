@@ -125,6 +125,8 @@ namespace UMLDes.GUI {
 #endif
 		}
 
+		int menurealx, menurealy;
+
 		public override void MouseDown( int x, int y, MouseButtons b, Keys modif, int realx, int realy ) {
 
 			// Left mouse button
@@ -257,6 +259,9 @@ namespace UMLDes.GUI {
 					Cursor.Current = Cursors.Hand;
 					selx = x;
 					sely = y;
+					menurealx = realx;
+					menurealy = realy;
+					first_move = true;
 				}
 			}
 		}
@@ -314,6 +319,7 @@ namespace UMLDes.GUI {
 					break;
 				case MouseAction.Scroll:
 					parent.cview.AdjustPageCoords( selx-x, sely-y );
+					first_move = false;
 					break;
 				case MouseAction.CreateConnection:
 					conn.Invalidate();
@@ -348,6 +354,12 @@ namespace UMLDes.GUI {
 			switch( action ) {
 				case MouseAction.Scroll:
 					Cursor.Current = Cursors.Arrow;
+					if( first_move ) {
+						System.Windows.Forms.ContextMenu m = new ContextMenu();
+						parent.AddMenuItems( m );
+						if( m.MenuItems.Count > 0 )
+							m.Show( parent.cview, new Point( menurealx, menurealy ) );
+					}
 					break;
 				case MouseAction.CreateConnection:
 					if( conn.second.item == null )

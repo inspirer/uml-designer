@@ -231,8 +231,8 @@ namespace UMLDes.GUI {
 		}
 
 		public override void UpdatePlaceRect() {
-			int x1 = Math.Min( hx, x - POINT_SELECTED_SIZE/2 ), y1 = Math.Min( hy, y - POINT_SELECTED_SIZE/2 );
-			int x2 = Math.Max( hx, x + POINT_SELECTED_SIZE/2 ), y2 = Math.Max( hy, y + POINT_SELECTED_SIZE/2 );
+			int x1 = Math.Min( Hyphen ? hx : x, x - POINT_SELECTED_SIZE/2 ), y1 = Math.Min( Hyphen ? hy : y, y - POINT_SELECTED_SIZE/2 );
+			int x2 = Math.Max( Hyphen ? hx : x, x + POINT_SELECTED_SIZE/2 ), y2 = Math.Max( Hyphen ? hy : y, y + POINT_SELECTED_SIZE/2 );
 			place = new Rectangle( x1, y1, x2 - x1 + 1, y2 - y1 + 1 );
 		}
 
@@ -267,6 +267,8 @@ namespace UMLDes.GUI {
 
 		public void Apply(ObjectState v) {
 			State s = v as State;
+			Invalidate();
+			root.Invalidate();
 			ux = s.ux;
 			uy = s.uy;
 			x = s.x;
@@ -276,6 +278,7 @@ namespace UMLDes.GUI {
 			hyphen = s.hyphen;
 			hyphen_dir = s.hyphen_dir;
 			UpdatePlaceRect();
+			root.Invalidate();
 			Invalidate();
 		}
 

@@ -12,11 +12,18 @@ namespace UMLDes.GUI {
 
 		[XmlAttribute] public string name;
 		[XmlAttribute] public int X, Y, Width, Height;
+		[XmlAttribute] public bool hidden;
 
 		public GuiPolygonItem() {
 			this.name = null;
 			X = Y = 0;
 			Width = Height = 40;
+		}
+
+		public override string Name {
+			get {
+				return UMLDes.Model.UmlModel.LongTypeName2Short( name );
+			}
 		}
 
 		public abstract void Paint( Graphics g, int x, int y );
@@ -207,6 +214,31 @@ namespace UMLDes.GUI {
 		public override Rectangle AroundRect {
 			get {
 				return Rectangle.Inflate( place, GuiConnectionPoint.DELTA - inflate-1, GuiConnectionPoint.DELTA - inflate-1 );
+			}
+		}
+
+		#endregion
+
+		#region Hidden
+
+		[XmlIgnore] public override bool Hidden {
+			get {
+				return hidden;
+			}
+			set {
+				if( hidden != value ) {
+					ObjectState before = ((IStateObject)this).GetState();
+					SetHidden( value );
+					parent.Undo.Push( new StateOperation( (IStateObject)this, before, ((IStateObject)this).GetState() ), false );
+				}
+			}
+		}
+
+		protected void SetHidden( bool val ) {
+			if( val != hidden ) {
+				hidden = val;
+				Invalidate();
+				parent.InvalidateAllAssociated( (IStateObject)this );
 			}
 		}
 

@@ -67,7 +67,7 @@ namespace UMLDes.GUI {
 
 		class State : ObjectState {
 			public int x, y;
-			public bool b1, b2;
+			public bool b1, b2, hidden;
 		}
 
 		public void Apply(ObjectState v) {
@@ -77,6 +77,7 @@ namespace UMLDes.GUI {
 			show_members = t.b1;
 			show_full_qual = t.b2;
 			RefreshContent();
+			SetHidden( t.hidden ); 
 		}
 
 		public ObjectState GetState() {
@@ -85,6 +86,7 @@ namespace UMLDes.GUI {
 			t.y = Y;
 			t.b1 = show_members;
 			t.b2 = show_full_qual;
+			t.hidden = hidden;
 			return t;
 		}
 

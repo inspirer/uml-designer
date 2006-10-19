@@ -1,3 +1,4 @@
+//#define CONTAINING_RECT_DEBUG
 using System;
 using System.Collections;
 using System.Drawing;
@@ -153,6 +154,8 @@ namespace UMLDes.GUI {
 
 		#endregion 
 
+		#region Item search
+
 		public GuiObject FindItem( int x, int y, bool direct_search ) {
 			int dx;
 			float dy;
@@ -166,14 +169,13 @@ namespace UMLDes.GUI {
 			ux = 0; uy = 0f;
 			
 			foreach( GuiObject s in obj.children ) {
-				if( s.children != null ) {
+				if( s.children != null && !s.Hidden	) {
 					GuiObject searched = FindItemInChildren( s, x, y, out ux, out uy );
 					if( searched != null )
 						return searched;
 				}
-				if( s is ISelectable )
-					if( (s as ISelectable).HasPoint( x, y, out ux, out uy ) )
-						return s;
+				if( s is ISelectable && !s.Hidden && (s as ISelectable).HasPoint( x, y, out ux, out uy ) )
+					return s;
 			}
 
 			return null;
@@ -186,12 +188,12 @@ namespace UMLDes.GUI {
 			// search in selected GuiObjects
 			if( direct_search ) {
 				foreach( GuiObject b in SelectedObjects ) {
-					if( b.children != null ) {
+					if( b.children != null && !b.Hidden ) {
 						res = FindItemInChildren( b, x, y, out dx, out dy );
 						if( res != null )
 							return res;
 					}
-					if( (b is ISelectable) && (b as ISelectable).HasPoint( x, y, out dx, out dy ) )
+					if( (b is ISelectable) && !b.Hidden && (b as ISelectable).HasPoint( x, y, out dx, out dy ) )
 						return b;
 				}
 
@@ -201,7 +203,7 @@ namespace UMLDes.GUI {
 					do {
 						if( b.children != null ) {
 							foreach( GuiObject sel in b.children )
-								if( sel is ISelectable && (sel as ISelectable).HasPoint(x, y, out dx, out dy))
+								if( sel is ISelectable && !sel.Hidden && (sel as ISelectable).HasPoint(x, y, out dx, out dy))
 									return sel;
 						}
 						b = (b is GuiBinded) ? (b as GuiBinded).root : null;
@@ -212,7 +214,7 @@ namespace UMLDes.GUI {
 			// search in other
 			for( int i = active_objects.Count - 1; i >= 0 ; i-- ) {
 				GuiObject p = (GuiObject)active_objects[i];
-				if( p.children != null ) {
+				if( p.children != null && !p.Hidden ) {
 					res = FindItemInChildren( p, x, y, out dx, out dy );
 					if( res != null )
 						if( direct_search )
@@ -220,7 +222,7 @@ namespace UMLDes.GUI {
 						else
 							return p;
 				}
-				if( p is ISelectable && (p as ISelectable).HasPoint(x, y, out dx, out dy ) )
+				if( p is ISelectable && !p.Hidden && (p as ISelectable).HasPoint(x, y, out dx, out dy ) )
 					return p;
 			}
 			dx = 0; 
@@ -228,15 +230,12 @@ namespace UMLDes.GUI {
 			return null;
 		}
 
-		public void SelectInRectangle( Rectangle r ) {
-			foreach( GuiObject i in active_objects )
-				if( i is ISelectable && (i as ISelectable).TestSelected(r) ) {
-					SelectedObjects.Add( i );
-				}
-		}
+		#endregion
+
+		#region Paint/Refresh
 
 		void PaintChildren( Graphics g, Rectangle r, int offx, int offy, IDrawable dr, Rectangle piece ) {
-            GuiObject o = dr as GuiObject;
+			GuiObject o = dr as GuiObject;
 			foreach( GuiBinded b in o.children ) 
 				if( !b.Hidden ) {
 					if( b.NeedRepaint( piece ) )
@@ -248,14 +247,38 @@ namespace UMLDes.GUI {
 
 		public override void Paint( Graphics g, Rectangle r, int offx, int offy ) {
 			Rectangle pagepiece = new Rectangle( offx, offy, r.Width, r.Height );
-			foreach( IDrawable i in active_objects ) {
-				if( i.NeedRepaint(pagepiece) )
-					i.Paint( g, r, offx, offy );
-				if( (i as GuiObject).children != null )
-					PaintChildren( g, r, offx, offy, i, pagepiece );
-			}
+			foreach( IDrawable i in active_objects ) 
+				if( !i.Hidden ) {
+					if( i.NeedRepaint(pagepiece) )
+						i.Paint( g, r, offx, offy );
+					if( (i as GuiObject).children != null )
+						PaintChildren( g, r, offx, offy, i, pagepiece );
+				}
 
 			mouseagent.DrawTemporary( g, r, offx, offy, pagepiece );
+
+			#if CONTAINING_RECT_DEBUG
+
+			foreach( IDrawable i in active_objects ) 
+				g.DrawRectangle( Pens.Green, i.ContainingRect.X + r.X - offx, i.ContainingRect.Y + r.Y - offy, i.ContainingRect.Width, i.ContainingRect.Height );
+
+			#endif
+		}
+
+		// forces object to recalculate its bounds
+		public void RefreshObject( INeedRefresh obj ) {
+			if( cview != null )
+				using( Graphics g = Graphics.FromHwnd( cview.Handle ) )
+					obj.RefreshView( g );
+		}
+
+		#endregion
+
+		public void SelectInRectangle( Rectangle r ) {
+			foreach( GuiObject i in active_objects )
+				if( i is ISelectable && (i as ISelectable).TestSelected(r) ) {
+					SelectedObjects.Add( i );
+				}
 		}
 
 		// fills gui_objects, AroundObjects (active_objects has been filled during XML load)
@@ -285,13 +308,6 @@ namespace UMLDes.GUI {
 
 			foreach( GuiObject p in active_objects )
 				p.PostLoad();
-		}
-
-		// forces object to recalculate its bounds
-		public void RefreshObject( INeedRefresh obj ) {
-			if( cview != null )
-				using( Graphics g = Graphics.FromHwnd( cview.Handle ) )
-					obj.RefreshView( g );
 		}
 
 		// registers object in: active_objects, gui_objects, AroundObjects
@@ -392,9 +408,26 @@ namespace UMLDes.GUI {
 		}
 
 		public override bool IfContainsSmth(Rectangle r) {
-			// TODO
-			return true;
+
+			foreach( IDrawable i in active_objects )
+				if( r.IntersectsWith( i.ContainingRect ) && !i.Hidden )
+					return true;
+
+			return false;
 		}
+
+		public override Rectangle GetContentRectangle() {
+			Rectangle res = Rectangle.Empty;
+			foreach( IDrawable i in active_objects )
+				if( !i.Hidden )
+					if( res.IsEmpty ) 
+						res = i.ContainingRect;
+					else
+						res = Rectangle.Union( i.ContainingRect, res );
+			return res;
+		}
+
+		#region Synchronize content on update
 
 		public override void RefreshContent() {
             foreach( GuiObject o in active_objects )
@@ -448,6 +481,8 @@ namespace UMLDes.GUI {
 			}
 		}
 
+		#endregion
+
 		public GuiClass FindClass( UmlClass cl ) {
 			foreach( GuiObject obj in active_objects ) {
                 GuiClass gcl = obj as GuiClass;
@@ -479,6 +514,86 @@ namespace UMLDes.GUI {
 			}
 		}
 
+		#region Popup Menu
+
+		public void AddMenuItems( System.Windows.Forms.ContextMenu m ) {
+			AddItem( m, "Show/Hide elements", ToolBarIcons.None, false, new EventHandler(showhide) );
+		}
+
+		public class WrappedElement : IVisible {
+
+			StaticView view;
+			GuiActive active;
+
+			public WrappedElement( StaticView view, GuiActive active ) {
+				this.view = view;
+				this.active = active;
+			}
+
+			#region IVisible Members
+
+			public bool Visible {
+				get {
+					return !active.RawHidden;
+				}
+				set {
+					if( active.Hidden != !value )
+						active.Hidden = !value;
+				}
+			}
+
+			public string Name {
+				get {
+					return active.Name;
+				}
+			}
+
+			public int ImageIndex { 
+				get {
+					if( active is GuiMemo )
+						return (int)ToolBarIcons.memo;
+					else if( active is GuiClass )
+						return (int)ToolBarIcons.Class;
+					else if( active is GuiPackage )
+						return (int)ToolBarIcons.package;
+					else if( active is GuiEnum )
+						return (int)ToolBarIcons.Class;
+					else if( active is GuiConnection ) {
+
+						switch( ((GuiConnection)active).type ) {
+							case UmlRelationType.Aggregation:
+								return (int)ToolBarIcons.conn_aggregation;
+							case UmlRelationType.Association:
+								return (int)ToolBarIcons.conn_assoc;
+							case UmlRelationType.Attachment:
+								return (int)ToolBarIcons.conn_attachm;
+							case UmlRelationType.Composition:
+								return (int)ToolBarIcons.conn_composition;
+							case UmlRelationType.Dependency:
+								return (int)ToolBarIcons.conn_dependence;
+							case UmlRelationType.Inheritance:
+								return (int)ToolBarIcons.conn_inher;
+							case UmlRelationType.Realization:
+								return (int)ToolBarIcons.conn_realiz;
+						}
+					}
+					return -1;
+				}
+			}
+
+			#endregion
+		}
+
+		void showhide( object v, EventArgs ev ) {
+			ArrayList l = new ArrayList();
+			foreach( GuiActive mm in active_objects )
+				l.Add( new WrappedElement( this, mm ) );
+
+			ShowHideDialog.Process( cview.FindForm(), l, proj.icon_list );
+		}
+
+		#endregion
+
 		#region Menu helper functions
 
 		public void AddItem( UMLDes.Controls.FlatMenuItem fmi, string text, ToolBarIcons icon, bool Checked, EventHandler click_handler ) {
@@ -500,5 +615,14 @@ namespace UMLDes.GUI {
 		}
 
 		#endregion
+
+		public void InvalidateAllAssociated( IStateObject obj ) {
+			foreach( GuiObject o in obj.Associated ) {
+				o.Invalidate();
+				o.invalidate_children();
+				if( o is IStateObject )
+                    InvalidateAllAssociated( o as IStateObject );
+			}
+		}
 	}
 }

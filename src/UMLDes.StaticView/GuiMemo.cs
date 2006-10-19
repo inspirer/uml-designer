@@ -16,6 +16,12 @@ namespace UMLDes.GUI {
 			text = "memo1";
 		}
 
+		public override string Name {
+			get {
+				return "memo: " + text.Replace( "\n", "\\n" ).Replace("\r","");
+			}
+		}
+
 		#region Paint
 
 		protected override Point[] GetPoints() {
@@ -103,6 +109,7 @@ namespace UMLDes.GUI {
 		class State : ObjectState {
 			public int x, y;
 			public string text, stereo;
+			public bool hidden;
 		}
 
 		public void Apply(ObjectState v) {
@@ -112,6 +119,7 @@ namespace UMLDes.GUI {
 			stereo = t.stereo;
 			text = t.text;
 			StateChanged();
+			SetHidden( t.hidden ); 
 		}
 
 		public ObjectState GetState() {
@@ -120,6 +128,7 @@ namespace UMLDes.GUI {
 			t.y = Y;
 			t.text = text;
 			t.stereo = stereo;
+			t.hidden = hidden;
 			return t;
 		}
 

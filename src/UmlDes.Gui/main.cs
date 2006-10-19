@@ -14,7 +14,7 @@ namespace UMLDes {
 		private System.ComponentModel.IContainer components;
 		private UMLDes.Controls.FlatMenuItem menuItem4;
 		private System.Windows.Forms.MainMenu mainMenu1;
-		private System.Windows.Forms.ImageList treeImages;
+		public System.Windows.Forms.ImageList treeImages;
 		public UMLDes.Controls.FlatToolBar toolBar1;
 		private System.Windows.Forms.ImageList toolbarImages;
 		
@@ -51,6 +51,8 @@ namespace UMLDes {
 		private UMLDes.Controls.FlatMenuItem menu_show_hints;
 		private System.Windows.Forms.StatusBar statusBar1;
 		internal System.Windows.Forms.StatusBarPanel status_panel;
+		private UMLDes.Controls.FlatMenuItem menuItem1;
+		private UMLDes.Controls.FlatMenuItem menu_SaveToImage;
 		public ImageList list;
 		public UMLDes.Controls.UmlSolutionTree SolutionTree { get { return ProjectTree; } }
 		
@@ -59,7 +61,7 @@ namespace UMLDes {
 			PostInitialize();
 			list = toolbarImages;
 			
-            TurnOnProject( UmlDesignerSolution.createNew() );
+			TurnOnProject( UmlDesignerSolution.createNew() );
 		}
 
 		#region ToolBar/Tree initialization
@@ -129,7 +131,7 @@ namespace UMLDes {
 		void EnableButton( UMLDes.Controls.FlatToolBarButton b, bool en ) {
 			if( !b.disabled != en ) {
 				b.disabled = !b.disabled;
-                b.parent.InvalidateButton( b );
+				b.parent.InvalidateButton( b );
 			}
 		}
 
@@ -229,6 +231,8 @@ namespace UMLDes {
 			this.menuItem4 = new UMLDes.Controls.FlatMenuItem();
 			this.menu_Print = new UMLDes.Controls.FlatMenuItem();
 			this.menu_PrintPreview = new UMLDes.Controls.FlatMenuItem();
+			this.menu_SaveToImage = new UMLDes.Controls.FlatMenuItem();
+			this.menuItem1 = new UMLDes.Controls.FlatMenuItem();
 			this.menu_Exit = new UMLDes.Controls.FlatMenuItem();
 			this.menumain_Edit = new UMLDes.Controls.FlatMenuItem();
 			this.menu_Undo = new UMLDes.Controls.FlatMenuItem();
@@ -322,6 +326,8 @@ namespace UMLDes {
 																						  this.menuItem4,
 																						  this.menu_Print,
 																						  this.menu_PrintPreview,
+																						  this.menu_SaveToImage,
+																						  this.menuItem1,
 																						  this.menu_Exit});
 			this.menumain_File.OwnerDraw = true;
 			this.menumain_File.Text = "&File";
@@ -379,6 +385,7 @@ namespace UMLDes {
 			this.menu_Print.Images = this.toolbarImages;
 			this.menu_Print.Index = 5;
 			this.menu_Print.OwnerDraw = true;
+			this.menu_Print.Shortcut = System.Windows.Forms.Shortcut.CtrlP;
 			this.menu_Print.Text = "&Print";
 			this.menu_Print.Click += new System.EventHandler(this.menu_Print_Click);
 			// 
@@ -388,14 +395,33 @@ namespace UMLDes {
 			this.menu_PrintPreview.Images = this.toolbarImages;
 			this.menu_PrintPreview.Index = 6;
 			this.menu_PrintPreview.OwnerDraw = true;
+			this.menu_PrintPreview.Shortcut = System.Windows.Forms.Shortcut.CtrlShiftP;
 			this.menu_PrintPreview.Text = "Print Pre&view";
 			this.menu_PrintPreview.Click += new System.EventHandler(this.menu_PrintPreview_Click);
+			// 
+			// menu_SaveToImage
+			// 
+			this.menu_SaveToImage.ImageIndex = 0;
+			this.menu_SaveToImage.Images = null;
+			this.menu_SaveToImage.Index = 7;
+			this.menu_SaveToImage.OwnerDraw = true;
+			this.menu_SaveToImage.Shortcut = System.Windows.Forms.Shortcut.CtrlI;
+			this.menu_SaveToImage.Text = "Save diagram as Image";
+			this.menu_SaveToImage.Click += new System.EventHandler(this.menu_SaveToImage_Click);
+			// 
+			// menuItem1
+			// 
+			this.menuItem1.ImageIndex = 0;
+			this.menuItem1.Images = null;
+			this.menuItem1.Index = 8;
+			this.menuItem1.OwnerDraw = true;
+			this.menuItem1.Text = "-";
 			// 
 			// menu_Exit
 			// 
 			this.menu_Exit.ImageIndex = 0;
 			this.menu_Exit.Images = null;
-			this.menu_Exit.Index = 7;
+			this.menu_Exit.Index = 9;
 			this.menu_Exit.OwnerDraw = true;
 			this.menu_Exit.Shortcut = System.Windows.Forms.Shortcut.CtrlX;
 			this.menu_Exit.Text = "E&xit";
@@ -752,8 +778,63 @@ namespace UMLDes {
 		}
 
 		private void menu_AddStaticView_Click(object sender, System.EventArgs e) {
-            UMLDes.GUI.View v = p.newStaticView();
+			UMLDes.GUI.View v = p.newStaticView();
 			SelectView( v, true );
+		}
+
+		#region Image Formats
+
+		private struct FormatDescr {
+			public System.Drawing.Imaging.ImageFormat format;
+			public string ext, descr;
+
+			public FormatDescr( System.Drawing.Imaging.ImageFormat format, string ext, string descr ) {
+				this.format = format;
+				this.ext = ext;
+				this.descr = descr;
+			}
+		}
+
+		private FormatDescr[] formats = new FormatDescr[] { 
+			new FormatDescr( System.Drawing.Imaging.ImageFormat.Png, "png", "PNG" ),
+			new FormatDescr( System.Drawing.Imaging.ImageFormat.Bmp, "bmp", "Bitmap" ), 
+			new FormatDescr( System.Drawing.Imaging.ImageFormat.Gif, "gif", "GIF" ), 
+			new FormatDescr( System.Drawing.Imaging.ImageFormat.Tiff, "tif", "TIFF" ), 
+			new FormatDescr( System.Drawing.Imaging.ImageFormat.Jpeg, "jpg", "JPEG" ), 
+		};
+
+		#endregion
+
+		private void menu_SaveToImage_Click(object sender, System.EventArgs e) {
+			Bitmap bmp = ViewCtrl1.PrintToImage();
+			if( bmp == null ) {
+				MessageBox.Show( "Diagram is empty", "Nothing to save", MessageBoxButtons.OK, MessageBoxIcon.Information );
+				return;
+			}
+
+			SaveFileDialog sfd = new SaveFileDialog();
+			string filter = String.Empty;
+			for( int i = 0; i < formats.Length; i++ )
+				filter += "|" + formats[i].descr + "(*."+ formats[i].ext + ")|*." + formats[i].ext;
+			sfd.Filter = filter.Substring(1);
+			sfd.FilterIndex = 0;
+			sfd.AddExtension = true;
+			sfd.Title = "Save To Image...";
+			sfd.ValidateNames = true;
+			sfd.FileName = ViewCtrl1.Curr.name;
+
+
+			if( sfd.ShowDialog( this ) == DialogResult.OK ) {
+				string ext = System.IO.Path.GetExtension( sfd.FileName ).ToLower();
+				System.Drawing.Imaging.ImageFormat format = null;
+				for( int i = 0; i < formats.Length; i++ )
+					if( ext.Equals( "." + formats[i].ext ) )
+						format = formats[i].format;
+				if( format != null )
+					bmp.Save( sfd.FileName, format );
+				else
+					MessageBox.Show( "Unknown extension: " + ext, "Cannot save", MessageBoxButtons.OK, MessageBoxIcon.Warning );
+			}
 		}
 
 		#endregion

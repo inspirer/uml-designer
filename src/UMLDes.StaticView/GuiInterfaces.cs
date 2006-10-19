@@ -8,6 +8,9 @@ namespace UMLDes.GUI {
 		void Invalidate();
 		void Paint( Graphics g, Rectangle r, int offx, int offy );
 		bool NeedRepaint( Rectangle page );	 
+
+		bool Hidden { get; }
+		Rectangle ContainingRect { get; }
 	}
 
 	public interface INeedRefresh {

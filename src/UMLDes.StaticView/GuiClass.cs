@@ -8,6 +8,28 @@ using UMLDes.Controls;
 
 namespace UMLDes.GUI {
 
+	public class GuiMember : ICloneable {
+		[XmlAttribute] public string signature, stereo, constraint;
+		[XmlAttribute] public bool visible;
+
+		public bool isDefault() {
+			return visible == true && stereo == null && constraint == null;
+		}
+		
+		#region ICloneable Members
+
+		public object Clone() {
+			GuiMember m = new GuiMember();
+			m.signature = signature;
+			m.stereo = stereo;
+			m.constraint = constraint;
+			m.visible = visible;
+			return m;
+		}
+
+		#endregion
+	}
+
 	/// <summary>
 	/// UML representation of class (classificator)
 	/// </summary>
@@ -15,6 +37,7 @@ namespace UMLDes.GUI {
 
 		[XmlAttribute] public bool show_members = true, show_vars = true, show_properties = true, show_only_public = false;
 		[XmlAttribute] public bool show_full_qual = false, show_method_signatures = false;
+		[XmlElement("member_params",typeof(GuiMember))] public ArrayList members;
 
 		[XmlIgnore] public UmlClass st;
 		[XmlAttribute] public string stereo;
@@ -24,6 +47,18 @@ namespace UMLDes.GUI {
 		}
 
 		#region Content
+
+		private Hashtable hash = new Hashtable();
+
+		private void fillHash() {
+            hash.Clear();
+			foreach( GuiMember m in members )
+				hash[m.signature] = m;
+		}
+
+		private bool isMemberVisible( string signature ) {
+			return hash.ContainsKey( signature ) ? ((GuiMember)hash[signature]).visible : true;
+		}
 
 		protected override void fillContent(ArrayList l) {
 
@@ -55,7 +90,7 @@ namespace UMLDes.GUI {
 				l.Add( new GuiString() );
 				if( st.Members != null )
 					foreach( UmlMember m in st.Members )
-						if( m.MemberKind == UmlMemberKind.Attributes && (!show_only_public || m.visibility == UmlVisibility.Public ) )
+						if( m.MemberKind == UmlMemberKind.Attributes && (!show_only_public || m.visibility == UmlVisibility.Public ) && isMemberVisible(m.signature) )
 							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
 			}
 
@@ -63,7 +98,7 @@ namespace UMLDes.GUI {
 				l.Add( new GuiString() );
 				if( st.Members != null )
 					foreach( UmlMember m in st.Members )
-						if( m.MemberKind == UmlMemberKind.Operations && (!show_only_public || m.visibility == UmlVisibility.Public ) )
+						if( m.MemberKind == UmlMemberKind.Operations && (!show_only_public || m.visibility == UmlVisibility.Public ) && isMemberVisible(m.signature) )
 							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
 			}
 
@@ -71,7 +106,7 @@ namespace UMLDes.GUI {
 				l.Add( new GuiString() );
 				if( st.Members != null )
 					foreach( UmlMember m in st.Members )
-						if( m.MemberKind == UmlMemberKind.Properties && (!show_only_public || m.visibility == UmlVisibility.Public ) )
+						if( m.MemberKind == UmlMemberKind.Properties && (!show_only_public || m.visibility == UmlVisibility.Public ) && isMemberVisible(m.signature) )
 							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
 			}
 
@@ -91,6 +126,7 @@ namespace UMLDes.GUI {
 
 		public override void PostLoad() {
 			st = parent.proj.model.GetObject( name ) as UmlClass;
+			fillHash();
 			base.PostLoad();
 		}
 
@@ -100,8 +136,9 @@ namespace UMLDes.GUI {
 
 		class State : ObjectState {
 			public int x, y;
-			public bool b1, b2, b3, b4, b5, b6;
+			public bool b1, b2, b3, b4, b5, b6, hidden;
 			public string stereo;
+			public ArrayList members;
 		}
 
 		public void Apply(ObjectState v) {
@@ -115,7 +152,14 @@ namespace UMLDes.GUI {
 			show_method_signatures = t.b5;
 			show_only_public = t.b6;
 			stereo = t.stereo;
+
+			members = new ArrayList( t.members.Count );
+			foreach( GuiMember m in t.members )
+				members.Add( m.Clone() );
+			fillHash();
+
 			RefreshContent();
+			SetHidden( t.hidden ); 
 		}
 
 		public ObjectState GetState() {
@@ -129,6 +173,11 @@ namespace UMLDes.GUI {
 			t.b5 = show_method_signatures;
 			t.b6 = show_only_public;
 			t.stereo = stereo;
+			t.hidden = hidden;
+
+			t.members = new ArrayList( members.Count );
+			foreach( GuiMember m in members )
+				t.members.Add( m.Clone() );
 			return t;
 		}
 
@@ -207,6 +256,75 @@ namespace UMLDes.GUI {
 			}
 		}
 
+		#region Show/Hide Members
+
+		public class WrappedMember : IVisible {
+
+			GuiClass cl;
+			UmlMember memb;
+
+			public WrappedMember( GuiClass cl, UmlMember memb ) {
+				this.cl = cl;
+				this.memb = memb;
+			}
+
+			#region IVisible Members
+
+			public bool Visible {
+				get {
+					return cl.hash.ContainsKey( memb.signature ) ? ((GuiMember)cl.hash[memb.signature]).visible : true ;
+				}
+				set {
+					if( cl.hash.ContainsKey( memb.signature ) ) {
+						GuiMember mb = (GuiMember)cl.hash[memb.signature];
+						mb.visible = value;
+						if( mb.isDefault() ) {
+							cl.members.Remove( mb );
+							cl.hash.Remove( mb );
+						}
+					} else if( value == false ) {
+						GuiMember m = new GuiMember();
+						m.signature = memb.signature;
+						m.visible = false;
+						cl.members.Add( m );
+						cl.hash[m.signature] = m;
+					}
+				}
+			}
+
+			public string Name {
+				get {
+					return memb.AsUml( true );
+				}
+			}
+
+			public int ImageIndex { 
+				get {
+					return IconUtility.IconForElement( memb );
+				}
+			}
+
+			#endregion
+		}
+
+
+		public void showhide( object o, EventArgs ev ) {
+			ArrayList l = new ArrayList();
+			if( st != null && st.Members != null )
+				foreach( UmlMember mm in st.Members )
+					l.Add( new WrappedMember( this, mm ) );
+
+			ObjectState before = GetState();
+			bool done = ShowHideDialog.Process( parent.cview.FindForm(), l, parent.proj.project_icon_list );
+
+			if( done ) {
+				RefreshContent();
+				parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
+			}
+		}
+
+		#endregion
+
 		public void AddMenuItems( System.Windows.Forms.ContextMenu m, int x, int y ) {
 
 			FlatMenuItem curr;
@@ -231,6 +349,7 @@ namespace UMLDes.GUI {
 
 			m.MenuItems.Add( new StereoTypeHelper( this ).GetStereoMenu() );
 
+			parent.AddItem( m, "Show/Hide Members", ToolBarIcons.None, false, new EventHandler( showhide ) );
 		}
 
 		#endregion

@@ -640,6 +640,32 @@ namespace UMLDes {
 
 		#region Print
 
+		#region PageToPrint structure
+		private struct PageToPrint {
+
+			public int x, y;
+
+			public PageToPrint( int x, int y ) {
+				this.x = x;
+				this.y = y;
+			}
+		}
+		#endregion
+
+		public ArrayList pages_to_print;
+
+		private void fillPagesToPrint() {
+			pages_to_print = new ArrayList();
+			for( int i = 0; i < x_pages; i++ )
+				for( int e = 0; e < y_pages; e++ ) {
+					Rectangle r = new Rectangle( i*x_res, e*y_res, x_res, y_res );
+					if( curr.IfContainsSmth( r ) )
+						pages_to_print.Add( new PageToPrint( i*x_res, e*y_res ) );
+				}
+            if( pages_to_print.Count == 0 )
+				pages_to_print.Add( new PageToPrint(0, 0) );
+		}
+
 		public void Print( bool preview ) {
 
 			if( curr == null )
@@ -653,7 +679,6 @@ namespace UMLDes {
 			pd.DocumentName = curr.name;
 			pd.DefaultPageSettings.Margins = new Margins( 25,25,25,25 );
 			pages_printed = 0;
-			pages_to_print = 9;
 
 			PrintDialog d = new PrintDialog();
 			d.Document = pd;
@@ -675,18 +700,38 @@ namespace UMLDes {
 			pd.Dispose();
 		}
 
-		private int pages_printed, pages_to_print;
+		private int pages_printed;
 
 		private void pd_PrintPage(object sender, PrintPageEventArgs e) {
 			Rectangle clip = e.MarginBounds;//e.PageBounds
 			if( pages_printed == 0 ) {
 				this.x_res = clip.Width;
 				this.y_res = clip.Height;
+				fillPagesToPrint();
 			}
-			int ox = (pages_printed%3)*x_res, oy = (pages_printed/3)*y_res;
+			PageToPrint ptp = (PageToPrint)pages_to_print[pages_printed];
 			e.Graphics.SetClip(clip);
-			curr.Paint( e.Graphics, clip, ox, oy );
-			e.HasMorePages = ++pages_printed < pages_to_print;
+			curr.Paint( e.Graphics, clip, ptp.x, ptp.y );
+			e.HasMorePages = ++pages_printed < pages_to_print.Count;
+			if( pages_printed == pages_to_print.Count )
+				pages_printed = 0;
+		}
+
+		#endregion
+
+		#region Save To Image
+
+		public Bitmap PrintToImage() {
+			curr.DoOperation( GUI.View.EditOperation.SelectNone );
+			Rectangle rect = curr.GetContentRectangle();
+			if( rect.IsEmpty )
+				return null;
+			Bitmap bmp = new Bitmap( rect.Width, rect.Height );
+			using( Graphics gr = Graphics.FromImage( bmp ) ) {
+				gr.FillRectangle( Brushes.White, 0, 0, rect.Width, rect.Height );
+				curr.Paint( gr, new Rectangle( new Point(0,0), rect.Size ), rect.X, rect.Y );
+			}
+			return bmp;
 		}
 
 		#endregion
