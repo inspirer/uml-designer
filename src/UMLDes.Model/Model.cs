@@ -23,6 +23,8 @@ namespace UMLDes.Model {
 		Operator,
 		Constructor,
 		Destructor,
+
+		Parameter,
 	}
 
 	/// <summary>
@@ -37,6 +39,9 @@ namespace UMLDes.Model {
 		public abstract UmlKind Kind { get; }
 
 		public abstract string Name { get; }
+
+		public string FullName { get { return UmlModel.GetFullQualified(this); } }
+		public string FullQualName { get { return UmlModel.GetUniversal(this); } }
 
 		[XmlIgnore] public bool Deleted;
 
@@ -103,6 +108,20 @@ namespace UMLDes.Model {
 
 		}
 
+		public static string GetFullQualified( UmlObject obj ) {
+			string name = obj.Name;
+			if( name == null || name.Length == 0 )
+				return String.Empty;
+			while( obj.Parent != null ) {
+				obj = obj.Parent;
+				if( obj.Name != null && obj.Name.Length > 0 )
+					name = obj.Name + "." + name;
+				else
+					break;
+			}
+			return name;
+		}
+
 		public static string GetUniversal( UmlObject obj ) {
 			string name = obj.Name;
 			if( name == null || name.Length == 0 )
@@ -123,6 +142,54 @@ namespace UMLDes.Model {
 			return name;
 		}
 
+		public UmlObject GetObject( string name ) {
+			int index = name.IndexOf( '/' );
+			if( index == -1 )
+				return null;
+			string proj_name = name.Substring( 0, index );
+			UmlProject project = null;
+			foreach( UmlProject p in projects )
+				if( p.uid.Equals( proj_name ) ) {
+					project = p;
+					break;
+				}
+			if( project == null )
+				foreach( UmlProject p in dllprojs )
+					if( p.uid.Equals( proj_name ) ) {
+						project = p;
+						break;
+					}
+
+			if( project != null ) {
+				UmlObject o = project.root;
+				string[] genid = name.Substring(index+1).Split( new char[] { '.' } );
+				foreach( string s in genid ) {
+					Hashtable hash = null;
+					if( o is UmlNamespace )
+						hash = ((UmlNamespace)o).Children;
+					else if( o is UmlClass )
+						hash = ((UmlClass)o).Children;
+					if( hash == null || !hash.ContainsKey( s ) )
+						return null;
+					o = (UmlObject)hash[s];
+				}
+				return o;
+			}
+
+			return null;
+		}
+
+		public static string LongTypeName2Short( string tn ) {
+			if( tn == null || tn.IndexOf( '/' ) == -1 )
+				return tn;
+			return tn.Substring( tn.IndexOf( '/' )+1 );
+		}
+
+		public static string GetShortName( string l ) {
+			l = LongTypeName2Short( l );
+			return ( l.LastIndexOf( '.' ) != -1 ) ? l.Substring( l.LastIndexOf( '.' ) + 1 ) : l;
+		}
+
 		#endregion
 	}
 
@@ -138,6 +205,8 @@ namespace UMLDes.Model {
 		[XmlIgnore] public ArrayList files;		// string
 		[XmlIgnore] public ArrayList refs;		// string, then UmlProjects
 		[XmlIgnore] public Hashtable classes, name_to_class; // DllProject features
+
+		internal DateTime write_time;
 
 		#region UmlObject
 

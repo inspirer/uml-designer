@@ -22,6 +22,7 @@ namespace UMLDes.Model.CSharp {
 		public static void AddProject( UmlModel m, string filename ) {
 			UmlProject p = new UmlProject();
 			p.filename = filename;
+			p.name = Path.GetFileNameWithoutExtension( filename );
 			m.projects.Add( p );
 		}
 
@@ -30,6 +31,10 @@ namespace UMLDes.Model.CSharp {
 			mb.model = model;
 			mb.Update();
 			errors = mb.errors.Count > 0 ? mb.errors : null;
+		}
+
+		public static void PostLoad( UmlModel model ) {
+			model.Visit( new UmlObject.Visitor( SetParentAndBuildHash ), null );
 		}
 
 		// model engine vars
@@ -654,14 +659,14 @@ namespace UMLDes.Model.CSharp {
 			return qual_name;
 		}
 
-		private UmlMember GetMember( string name, ModifiersNode mod, UmlKind kind, UmlClass cl ) {
+		private UmlMember GetMember( string name, string signature, ModifiersNode mod, UmlKind kind, UmlClass cl ) {
 			UmlMember member = null;
 
 			if( cl.Members == null )
 				cl.Members = new ArrayList();
 			else
 				foreach( UmlMember m in cl.Members )
-					if( m.name.Equals( name ) ) {
+					if( m.signature.Equals( signature ) ) {
 						member = m;
 						break;
 					}
@@ -680,6 +685,7 @@ namespace UMLDes.Model.CSharp {
 					case UmlKind.Destructor:member = new UmlDestructor(); break;
 				}
 				System.Diagnostics.Debug.Assert( member != null, "unknown Member kind" );
+				member.signature = signature;
 				member.name = name;
 				cl.Members.Add( member );
 			} else {
@@ -704,11 +710,17 @@ namespace UMLDes.Model.CSharp {
 					member.visibility = UmlVisibility.Public;
 				else if( (mod.value & (int)Modifiers.Private) != 0 )
 					member.visibility = UmlVisibility.Private;
+	
+				if( (mod.value & (int)Modifiers.Static) != 0 )
+					member.IsStatic = true;
+				if( (mod.value & (int)Modifiers.Abstract) != 0 )
+					member.IsAbstract = true;
 			}
+
 			return member;
 		}
 
-		private string GenerateSignature( IdentNode name, ListNode parms, UmlClass cl ) {
+		private string GenerateSignature( string name, ListNode parms, UmlClass cl, bool is_indexer ) {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
 			if( parms != null )
 				foreach( ParameterNode pn in parms.nodes ) {
@@ -725,7 +737,20 @@ namespace UMLDes.Model.CSharp {
 					}
 					sb.Append( type );
 				}
-			return name.identifier + "(" + sb.ToString() + ")";
+			return is_indexer ? name + "[" + sb.ToString() + "]"
+							  : name + "(" + sb.ToString() + ")";
+		}
+
+		private ArrayList GetParameters( ListNode ln, UmlClass cl ) {
+            ArrayList l = new ArrayList();
+			if( ln != null )
+				foreach( ParameterNode pn in ln.nodes ) {
+					UmlParameter param = new UmlParameter();
+					param.name = pn.name.identifier;
+					param.Type = GetFullTypeName( GetTypeName( pn.type ), cl );
+					l.Add( param );
+				}
+			return l;
 		}
 
 		private void UpdateClass( UmlClass cl, ClassDecl classdecl ) {
@@ -736,29 +761,59 @@ namespace UMLDes.Model.CSharp {
 						case Kind.Fields:
 							FieldsDecl var = (FieldsDecl)decl;
 							string type = GetFullTypeName( GetTypeName( var.type ), cl );
+							string name;
 							foreach( Node n in var.declarators.nodes ) {
-								string name = n is VariableNode ? ((VariableNode)n).name.identifier : n is ConstantNode ? ((ConstantNode)n).name.identifier : null;
-								UmlField f = (UmlField)GetMember( name, var.modifiers, decl.kind == Kind.Fields ? UmlKind.Field : UmlKind.Constant, cl );
+								name = n is VariableNode ? ((VariableNode)n).name.identifier : n is ConstantNode ? ((ConstantNode)n).name.identifier : null;
+								UmlField f = (UmlField)GetMember( name, name, var.modifiers, decl.kind == Kind.Fields ? UmlKind.Field : UmlKind.Constant, cl );
 								f.Type = type;
 							}
 							break;
+						case Kind.UnaryOperator:
+						case Kind.BinaryOperator:
 						case Kind.Method:
 							MethodDecl meth = (MethodDecl)decl;
-							UmlMethod m = (UmlMethod)GetMember( GenerateSignature( meth.name, meth.parameters, cl ), meth.modifiers, UmlKind.Method, cl );
+							UmlKind uml_kind = decl.kind == Kind.Method ? UmlKind.Method : UmlKind.Operator;
+							UmlMethod m = (UmlMethod)GetMember( meth.name.identifier, GenerateSignature( meth.name.identifier, meth.parameters, cl, false ), meth.modifiers, uml_kind, cl );
 							m.ReturnType = GetFullTypeName( GetTypeName( meth.return_type ), cl );
+							m.Params = GetParameters( meth.parameters, cl );
 							break;
 						case Kind.Constructor:
 						case Kind.Destructor:
+							MethodDecl cdtor = (MethodDecl)decl;
+							name = decl.kind == Kind.Constructor ? cdtor.name.identifier : "~" + cdtor.name.identifier;
+							UmlMember cdmemb = GetMember( name, GenerateSignature( name, cdtor.parameters, cl, false ), cdtor.modifiers, decl.kind == Kind.Constructor ? UmlKind.Constructor : UmlKind.Destructor, cl );
+							break;
 						case Kind.ConversionOperator:
-						case Kind.UnaryOperator:
-						case Kind.BinaryOperator:
-							// TODO
+							meth = (MethodDecl)decl;
+							name = "operator " + GetFullTypeName( GetTypeName( meth.return_type ), cl );
+							UmlOperator op = (UmlOperator)GetMember( name, GenerateSignature( name, meth.parameters, cl, false ), meth.modifiers, UmlKind.Operator, cl );
 							break;
 						case Kind.Property:
+							PropertyNode prop = (PropertyNode)decl;
+							UmlProperty p = (UmlProperty)GetMember( prop.name.identifier, prop.name.identifier, prop.modifiers, UmlKind.Property, cl );
+							p.Type = GetFullTypeName( GetTypeName( prop.type ), cl );
+							p.Accessors = string.Empty;
+							foreach( AccessorNode an in prop.accessors.nodes )
+								p.Accessors += an.name.identifier + ";";
+							break;
 						case Kind.EventVars:
+							UmlEvent ev;
+							EventNode evnt = (EventNode)decl;
+							type = GetFullTypeName( GetTypeName( evnt.type ), cl );
+							foreach( VariableNode n in evnt.vars.nodes ) {
+								ev = (UmlEvent)GetMember( n.name.identifier, n.name.identifier, evnt.modifiers, UmlKind.Event, cl );
+								ev.Type = type;
+							}
+							break;
 						case Kind.EventWithAccessors:
+							evnt = (EventNode)decl;
+							ev = (UmlEvent)GetMember( evnt.name.identifier, evnt.name.identifier, evnt.modifiers, UmlKind.Event, cl );
+							ev.Type = GetFullTypeName( GetTypeName( evnt.type ), cl );
+							break;
 						case Kind.Indexer:
-							// TODO
+							IndexerNode inode = (IndexerNode)decl;
+							UmlIndexer indx = (UmlIndexer)GetMember( inode.name.identifier, GenerateSignature( inode.name.identifier, inode.formal_params, cl, true ), inode.modifiers, UmlKind.Indexer, cl );
+							indx.Type = GetFullTypeName( GetTypeName( inode.type ), cl );
 							break;
 						case Kind.Delegate:
 						case Kind.Enum:

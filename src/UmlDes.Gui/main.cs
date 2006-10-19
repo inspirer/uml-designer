@@ -4,46 +4,49 @@ using System.Collections;
 using System.ComponentModel;
 using System.Windows.Forms;
 using System.Data;
-using CDS.CSharp;
+using UMLDes.Model;
+using UMLDes.GUI;
 
-namespace CDS {
+namespace UMLDes {
 
-	public class MainWnd : CDS.Controls.FlatMenuForm {
+	public class MainWnd : UMLDes.Controls.FlatMenuForm {
 		private System.ComponentModel.IContainer components;
-		private CDS.Controls.FlatMenuItem menuItem4;
+		private UMLDes.Controls.FlatMenuItem menuItem4;
 		private System.Windows.Forms.MainMenu mainMenu1;
-		private System.Windows.Forms.TreeView project_files, project_classes, project_views;
 		private System.Windows.Forms.ImageList treeImages;
-		private CDS.Controls.FlatToolBar toolBar1;
+		private UMLDes.Controls.FlatToolBar toolBar1;
 		private System.Windows.Forms.ImageList toolbarImages;
-		private CDS.Controls.FormsCollapserCtrl collapser;
 		
-		public Project p;
-		private CDS.ViewCtrl ViewCtrl1;
-		private CDS.Controls.FlatMenuItem menuItem26;
-		private CDS.Controls.FlatMenuItem menuItem31;
-		private CDS.Controls.FlatMenuItem menu_About;
-		private CDS.Controls.FlatMenuItem menu_NewProject;
-		private CDS.Controls.FlatMenuItem menu_OpenProject;
-		private CDS.Controls.FlatMenuItem menu_SaveProject;
-		private CDS.Controls.FlatMenuItem menu_SaveProjAs;
-		private CDS.Controls.FlatMenuItem menu_Print;
-		private CDS.Controls.FlatMenuItem menu_Exit;
-		private CDS.Controls.FlatMenuItem menu_Undo;
-		private CDS.Controls.FlatMenuItem menu_Cut;
-		private CDS.Controls.FlatMenuItem menu_Copy;
-		private CDS.Controls.FlatMenuItem menu_Paste;
-		private CDS.Controls.FlatMenuItem menu_Delete;
-		private CDS.Controls.FlatMenuItem menu_SelectAll;
-		private CDS.Controls.FlatMenuItem menu_AddFiles;
-		private CDS.Controls.FlatMenuItem menu_AddStaticView;
-		private CDS.Controls.FlatMenuItem menu_Parse;
-		private CDS.Controls.FlatMenuItem menumain_Help;
-		private CDS.Controls.FlatMenuItem menumain_File;
-		private CDS.Controls.FlatMenuItem menumain_Edit;
-		private CDS.Controls.FlatMenuItem menumain_Project;
-		private CDS.Controls.FlatMenuItem menu_Redo;
-		private CDS.Controls.FlatMenuItem menu_GC_Collect;
+		public UmlDesignerSolution p;
+		private UMLDes.Controls.FlatMenuItem menuItem26;
+		private UMLDes.Controls.FlatMenuItem menuItem31;
+		private UMLDes.Controls.FlatMenuItem menu_About;
+		private UMLDes.Controls.FlatMenuItem menu_NewProject;
+		private UMLDes.Controls.FlatMenuItem menu_OpenProject;
+		private UMLDes.Controls.FlatMenuItem menu_SaveProject;
+		private UMLDes.Controls.FlatMenuItem menu_SaveProjAs;
+		private UMLDes.Controls.FlatMenuItem menu_Print;
+		private UMLDes.Controls.FlatMenuItem menu_Exit;
+		private UMLDes.Controls.FlatMenuItem menu_Undo;
+		private UMLDes.Controls.FlatMenuItem menu_Cut;
+		private UMLDes.Controls.FlatMenuItem menu_Copy;
+		private UMLDes.Controls.FlatMenuItem menu_Paste;
+		private UMLDes.Controls.FlatMenuItem menu_Delete;
+		private UMLDes.Controls.FlatMenuItem menu_SelectAll;
+		private UMLDes.Controls.FlatMenuItem menu_AddFiles;
+		private UMLDes.Controls.FlatMenuItem menu_AddStaticView;
+		private UMLDes.Controls.FlatMenuItem menu_Parse;
+		private UMLDes.Controls.FlatMenuItem menumain_Help;
+		private UMLDes.Controls.FlatMenuItem menumain_File;
+		private UMLDes.Controls.FlatMenuItem menumain_Edit;
+		private UMLDes.Controls.FlatMenuItem menumain_Project;
+		private UMLDes.Controls.FlatMenuItem menu_Redo;
+		private UMLDes.Controls.FlatMenuItem menu_GC_Collect;
+		private System.Windows.Forms.Panel panel1;
+		private System.Windows.Forms.Splitter splitter1;
+		private UMLDes.ViewCtrl ViewCtrl1;
+		private System.Windows.Forms.TreeView ProjectTree;
+		private UMLDes.Controls.FlatMenuItem menu_PrintPreview;
 		public ImageList list;
 		
 		public MainWnd() {
@@ -51,20 +54,15 @@ namespace CDS {
 			PostInitialize();
 			list = toolbarImages;
 			
-            TurnOnProject( Project.createNew() );
+            TurnOnProject( UmlDesignerSolution.createNew() );
 		}
 
-		TreeView create_tree_view( string name ) {
-			TreeView tv = new System.Windows.Forms.TreeView();
+		#region ToolBar/Tree initialization
 
+		void initialize_tree_view( TreeView tv ) {
 			tv.BackColor = System.Drawing.SystemColors.Window;
-			tv.BorderStyle = System.Windows.Forms.BorderStyle.None;
-			//this.tree.Dock = System.Windows.Forms.DockStyle.Left;
 			tv.ImageList = this.treeImages;
 			tv.Location = new System.Drawing.Point(0, 0);
-			tv.Name = name;
-			tv.Size = new System.Drawing.Size(208, 449);
-			tv.TabIndex = 1;
 			tv.LabelEdit = true;
 			tv.BeforeLabelEdit +=new NodeLabelEditEventHandler(BeforeLabelEdit);
 			tv.AfterLabelEdit +=new NodeLabelEditEventHandler(AfterLabelEdit);
@@ -72,53 +70,55 @@ namespace CDS {
 			tv.MouseUp += new System.Windows.Forms.MouseEventHandler(this.TreeMouseUp);
 			tv.MouseMove += new System.Windows.Forms.MouseEventHandler(this.TreeMouseMove);
 			tv.GiveFeedback += new System.Windows.Forms.GiveFeedbackEventHandler(this.tree_GiveFeedback);
-			return tv;
 		}
 
-		CDS.Controls.FlatToolBarButton tool_undo, tool_redo, tool_cut, tool_copy, tool_paste;
+		UMLDes.Controls.FlatToolBarButton tool_undo, tool_redo, tool_cut, tool_copy, tool_paste;
 
 		void PostInitialize() {
-			this.project_files = create_tree_view( "project_files" );
-			this.project_classes = create_tree_view( "project_classes" );
-			this.project_views = create_tree_view( "project_views" );
+			initialize_tree_view( ProjectTree );
 
-			//
-			//  collapser
-			//
-			this.collapser.parent_control = ViewCtrl1;
-			this.collapser.AddControl( this.project_files, "Files", treeImages.Images[0] );
-			this.collapser.AddControl( this.project_classes, "Classes", treeImages.Images[1] );
-			this.collapser.AddControl( this.project_views, "Views", treeImages.Images[2] );
+			UMLDes.Controls.MouseClickEvent m = new UMLDes.Controls.MouseClickEvent(ToolbarAction);
+			UMLDes.Controls.FlatToolBarPanel p;
 
-			//  ToolBar
-			CDS.Controls.MouseClickEvent m = new CDS.Controls.MouseClickEvent(ProjectRelated);
-			CDS.Controls.FlatToolBarPanel p = toolBar1.AddPanel( 0, "Standard" );
-			p.AddButton( CDS.Controls.FlatButtonType.Simple, 0, "New project", m );
-			p.AddButton( CDS.Controls.FlatButtonType.Simple, 1, "Open project", m );
-			p.AddButton( CDS.Controls.FlatButtonType.Simple, 2, "Save", m );
-			p.AddButton( CDS.Controls.FlatButtonType.Simple, 3, "Save all", m );
-			p.AddButton( CDS.Controls.FlatButtonType.Line, 0, null, null );
-			m = new CDS.Controls.MouseClickEvent(CutCopyPaste);
-			tool_cut = p.AddButton( CDS.Controls.FlatButtonType.Simple, 4, "Cut", m );
-			tool_copy = p.AddButton( CDS.Controls.FlatButtonType.Simple, 5, "Copy", m );
-			tool_paste = p.AddButton( CDS.Controls.FlatButtonType.Simple, 6, "Paste", m );
-			p.AddButton( CDS.Controls.FlatButtonType.Line, 0, null, null );
-			tool_undo = p.AddButton( CDS.Controls.FlatButtonType.Simple, 15, "Undo", m );
-			tool_redo = p.AddButton( CDS.Controls.FlatButtonType.Simple, 16, "Redo", m );
-
+			//  project toolbar
+			p = toolBar1.AddPanel( 0, "Standard" );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.New, "New project", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.Open, "Open project", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.Save, "Save", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.Saveall, "Save all", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.print, "Print", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.print_preview, "Print Preview", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
+			tool_cut = p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.cut, "Cut", m );
+			tool_copy = p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.copy, "Copy", m );
+			tool_paste = p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.paste, "Paste", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
+			tool_undo = p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.undo, "Undo", m );
+			tool_redo = p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.redo, "Redo", m );
 			tool_cut.disabled = tool_copy.disabled = tool_paste.disabled = true;
 
-			p = toolBar1.AddPanel( 0, "Relations" );
-			m = new CDS.Controls.MouseClickEvent(DrawingModeChanged);
-			defbutton = p.AddButton( CDS.Controls.FlatButtonType.RadioDown, 7, "Select", m );
-			p.AddButton( CDS.Controls.FlatButtonType.Radio, 8, "Draw connection", m );
-			// TODO
-			p.AddButton( CDS.Controls.FlatButtonType.Radio, 9, "Draw comment", m ).disabled = true;
+			// UML Elements drawing
+			p = toolBar1.AddPanel( 0, "UML" );
+			defbutton = p.AddButton( UMLDes.Controls.FlatButtonType.RadioDown, (int)ToolBarIcons.arrow, "Select", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.conn_inher, "Draw inhreitance", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.conn_assoc, "Draw association", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.conn_aggregation, "Draw aggregation", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.memo, "Draw memo", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.package, "Draw package", m ).disabled = true;
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.actor, "Draw actor", m ).disabled = true;
 			drawingmode = p;
 
-			p = toolBar1.AddPanel( 0, "UML" );
+			p = toolBar1.AddPanel( 0, "Default line type" );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.straight_conn, "Line", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.segmented_conn, "Segmented", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.RadioDown, (int)ToolBarIcons.quadric_conn, "Quadric", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.curved_conn, "Bezier", m ).disabled = true;
 
 			// Scale menu
+			p = toolBar1.AddPanel( 0, "Scale" );
 			ComboBox cb = new ComboBox(); 
 			cb.Size = new Size( 90, 20 );
 			cb.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -126,16 +126,18 @@ namespace CDS {
 
 			for( int i = 0; i < scalevalue.Length; i += 2 )
 				cb.Items.Add( (scalevalue[i] * 100 / scalevalue[i+1] ).ToString() + "%" );
-			cb.SelectedIndex = 4;
+			cb.SelectedIndex = 5;
 			cb.SelectedIndexChanged += new EventHandler(ScaleChanged);
 			scalecombo = cb;
 
 			p.AddControl( cb );
 		}
 
+		#endregion
+
 		#region ToolBar related
 
-		void EnableButton( CDS.Controls.FlatToolBarButton b, bool en ) {
+		void EnableButton( UMLDes.Controls.FlatToolBarButton b, bool en ) {
 			if( !b.disabled != en ) {
 				b.disabled = !b.disabled;
                 b.parent.InvalidateButton( b );
@@ -147,42 +149,79 @@ namespace CDS {
 			EnableButton( tool_redo, ViewCtrl1.Curr.undo.can_redo );
 		}
 
-		void CutCopyPaste( int index ) {
-			switch( index ) {
-				case 15:   // Undo
-					ViewCtrl1.Curr.undo.DoUndo();
+		void ToolbarAction( int index ) {
+			switch( (ToolBarIcons)index ) {
+				case ToolBarIcons.New:   // New
+					if( !SaveChanges() )
+						return;
+					TurnOnProject( UmlDesignerSolution.createNew() );
 					break;
-				case 16:   // Redo
-					ViewCtrl1.Curr.undo.DoRedo();
-					break;
-				default:
-					MessageBox.Show( "CopyPaste" + index );
-					break;
-			}
-		}
-
-		void ProjectRelated( int index ) {
-			switch( index ) {
-				case 0:   // New
-					break;
-				case 1:   // Open
+				case ToolBarIcons.Open:   // Open
 					LoadProject( null, null );
 					break;
-				case 2:   // Save
+				case ToolBarIcons.Save:   // Save
 					SaveProject( null, null );
 					break;
-				case 3:   // Saveall
+				case ToolBarIcons.Saveall:   // Saveall
+					break;
+				case ToolBarIcons.print:
+					ViewCtrl1.Print(false);
+					break;
+				case ToolBarIcons.print_preview:
+					ViewCtrl1.Print(true);
+					break;
+				case ToolBarIcons.undo:   // Undo
+					ViewCtrl1.Curr.undo.DoUndo();
+					break;
+				case ToolBarIcons.redo:   // Redo
+					ViewCtrl1.Curr.undo.DoRedo();
+					break;
+				case ToolBarIcons.cut:
+				case ToolBarIcons.copy:
+				case ToolBarIcons.paste:
+					MessageBox.Show( "CopyPaste" + ((ToolBarIcons)index).ToString() );
+					break;
+				// what to do
+				case ToolBarIcons.arrow:
+					ViewCtrl1.Curr.mouseagent.current_operation = 0;
+					break;
+				case ToolBarIcons.conn_inher:
+					ViewCtrl1.Curr.mouseagent.current_operation = 1;
+					ViewCtrl1.Curr.mouseagent.current_param1 = 0;
+					ViewCtrl1.Curr.mouseagent.current_param2 = current_line_type;
+					break;
+				case ToolBarIcons.conn_assoc:
+					ViewCtrl1.Curr.mouseagent.current_operation = 1;
+					ViewCtrl1.Curr.mouseagent.current_param1 = 1;
+					ViewCtrl1.Curr.mouseagent.current_param2 = current_line_type;
+					break;
+				case ToolBarIcons.conn_aggregation:
+					ViewCtrl1.Curr.mouseagent.current_operation = 1;
+					ViewCtrl1.Curr.mouseagent.current_param1 = 2;
+					ViewCtrl1.Curr.mouseagent.current_param2 = current_line_type;
+					break;
+				case ToolBarIcons.memo: 
+					ViewCtrl1.Curr.mouseagent.current_operation = 2;
+					break;
+				// line type
+				case ToolBarIcons.straight_conn: 
+					current_line_type = 0;
+					break;
+				case ToolBarIcons.segmented_conn: 
+					current_line_type = 1;
+					break;
+				case ToolBarIcons.quadric_conn: 
+					current_line_type = 2;
+					break;
+				case ToolBarIcons.curved_conn:
+					current_line_type = 3;
 					break;
 			}
 		}
 
-		CDS.Controls.FlatToolBarPanel drawingmode;
-		CDS.Controls.FlatToolBarButton defbutton;
-
-		void DrawingModeChanged( int index ) {
-			index -= 7;
-			ViewCtrl1.Curr.mouseagent.current_operation = index;
-		}
+		int current_line_type = 2;
+		UMLDes.Controls.FlatToolBarPanel drawingmode;
+		UMLDes.Controls.FlatToolBarButton defbutton;
 
 		public void SetDefaultDrawingMode() {
 			ViewCtrl1.Curr.mouseagent.current_operation = 0;
@@ -192,13 +231,17 @@ namespace CDS {
 		static int[] scalevalue = new int[] {
 												3, 1,		// 300 %
 												2, 1,		// 200 %
+												5, 3,		// 166 %
 												3, 2,		// 150 %
 												4, 3,		// 133 %
 												1, 1,		// 100 %
 												9, 10,		// 90 %
 												3, 4,		// 75 %
+												2, 3,		// 66 %
 												1, 2,		// 50 %
+												1, 3,		// 33 %
 												1, 4,		// 25 %
+												1, 5,		// 20 %
 		};
 
 		ComboBox scalecombo;				
@@ -210,14 +253,6 @@ namespace CDS {
 
 		#endregion
 		
-		protected override void Dispose( bool disposing ) {
-			if( disposing ) {
-				if (components != null)
-					components.Dispose();
-			}
-			base.Dispose( disposing );
-		}
-		
 		#region Windows Form Designer generated code
 		/// <summary>
 		/// Required method for Designer support - do not modify
@@ -226,37 +261,41 @@ namespace CDS {
 		private void InitializeComponent() {
 			this.components = new System.ComponentModel.Container();
 			System.Resources.ResourceManager resources = new System.Resources.ResourceManager(typeof(MainWnd));
-			this.menu_About = new CDS.Controls.FlatMenuItem();
+			this.menu_About = new UMLDes.Controls.FlatMenuItem();
 			this.toolbarImages = new System.Windows.Forms.ImageList(this.components);
-			this.menumain_Help = new CDS.Controls.FlatMenuItem();
-			this.menu_GC_Collect = new CDS.Controls.FlatMenuItem();
+			this.menumain_Help = new UMLDes.Controls.FlatMenuItem();
+			this.menu_GC_Collect = new UMLDes.Controls.FlatMenuItem();
 			this.mainMenu1 = new System.Windows.Forms.MainMenu();
-			this.menumain_File = new CDS.Controls.FlatMenuItem();
-			this.menu_NewProject = new CDS.Controls.FlatMenuItem();
-			this.menu_OpenProject = new CDS.Controls.FlatMenuItem();
-			this.menu_SaveProject = new CDS.Controls.FlatMenuItem();
-			this.menu_SaveProjAs = new CDS.Controls.FlatMenuItem();
-			this.menuItem4 = new CDS.Controls.FlatMenuItem();
-			this.menu_Print = new CDS.Controls.FlatMenuItem();
-			this.menu_Exit = new CDS.Controls.FlatMenuItem();
-			this.menumain_Edit = new CDS.Controls.FlatMenuItem();
-			this.menu_Undo = new CDS.Controls.FlatMenuItem();
-			this.menu_Redo = new CDS.Controls.FlatMenuItem();
-			this.menuItem26 = new CDS.Controls.FlatMenuItem();
-			this.menu_Cut = new CDS.Controls.FlatMenuItem();
-			this.menu_Copy = new CDS.Controls.FlatMenuItem();
-			this.menu_Paste = new CDS.Controls.FlatMenuItem();
-			this.menu_Delete = new CDS.Controls.FlatMenuItem();
-			this.menuItem31 = new CDS.Controls.FlatMenuItem();
-			this.menu_SelectAll = new CDS.Controls.FlatMenuItem();
-			this.menumain_Project = new CDS.Controls.FlatMenuItem();
-			this.menu_AddFiles = new CDS.Controls.FlatMenuItem();
-			this.menu_AddStaticView = new CDS.Controls.FlatMenuItem();
-			this.menu_Parse = new CDS.Controls.FlatMenuItem();
+			this.menumain_File = new UMLDes.Controls.FlatMenuItem();
+			this.menu_NewProject = new UMLDes.Controls.FlatMenuItem();
+			this.menu_OpenProject = new UMLDes.Controls.FlatMenuItem();
+			this.menu_SaveProject = new UMLDes.Controls.FlatMenuItem();
+			this.menu_SaveProjAs = new UMLDes.Controls.FlatMenuItem();
+			this.menuItem4 = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Print = new UMLDes.Controls.FlatMenuItem();
+			this.menu_PrintPreview = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Exit = new UMLDes.Controls.FlatMenuItem();
+			this.menumain_Edit = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Undo = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Redo = new UMLDes.Controls.FlatMenuItem();
+			this.menuItem26 = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Cut = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Copy = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Paste = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Delete = new UMLDes.Controls.FlatMenuItem();
+			this.menuItem31 = new UMLDes.Controls.FlatMenuItem();
+			this.menu_SelectAll = new UMLDes.Controls.FlatMenuItem();
+			this.menumain_Project = new UMLDes.Controls.FlatMenuItem();
+			this.menu_AddFiles = new UMLDes.Controls.FlatMenuItem();
+			this.menu_AddStaticView = new UMLDes.Controls.FlatMenuItem();
+			this.menu_Parse = new UMLDes.Controls.FlatMenuItem();
 			this.treeImages = new System.Windows.Forms.ImageList(this.components);
-			this.toolBar1 = new CDS.Controls.FlatToolBar();
-			this.collapser = new CDS.Controls.FormsCollapserCtrl();
-			this.ViewCtrl1 = new CDS.ViewCtrl();
+			this.toolBar1 = new UMLDes.Controls.FlatToolBar();
+			this.panel1 = new System.Windows.Forms.Panel();
+			this.ProjectTree = new System.Windows.Forms.TreeView();
+			this.splitter1 = new System.Windows.Forms.Splitter();
+			this.ViewCtrl1 = new UMLDes.ViewCtrl();
+			this.panel1.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// menu_About
@@ -315,6 +354,7 @@ namespace CDS {
 																						  this.menu_SaveProjAs,
 																						  this.menuItem4,
 																						  this.menu_Print,
+																						  this.menu_PrintPreview,
 																						  this.menu_Exit});
 			this.menumain_File.OwnerDraw = true;
 			this.menumain_File.Text = "&File";
@@ -372,14 +412,23 @@ namespace CDS {
 			this.menu_Print.Images = this.toolbarImages;
 			this.menu_Print.Index = 5;
 			this.menu_Print.OwnerDraw = true;
-			this.menu_Print.Text = "Print";
-			this.menu_Print.Click += new System.EventHandler(this.menuItem13_Click);
+			this.menu_Print.Text = "&Print";
+			this.menu_Print.Click += new System.EventHandler(this.menu_Print_Click);
+			// 
+			// menu_PrintPreview
+			// 
+			this.menu_PrintPreview.ImageIndex = 24;
+			this.menu_PrintPreview.Images = this.toolbarImages;
+			this.menu_PrintPreview.Index = 6;
+			this.menu_PrintPreview.OwnerDraw = true;
+			this.menu_PrintPreview.Text = "Print Pre&view";
+			this.menu_PrintPreview.Click += new System.EventHandler(this.menu_PrintPreview_Click);
 			// 
 			// menu_Exit
 			// 
 			this.menu_Exit.ImageIndex = 0;
 			this.menu_Exit.Images = null;
-			this.menu_Exit.Index = 6;
+			this.menu_Exit.Index = 7;
 			this.menu_Exit.OwnerDraw = true;
 			this.menu_Exit.Shortcut = System.Windows.Forms.Shortcut.CtrlX;
 			this.menu_Exit.Text = "E&xit";
@@ -546,39 +595,60 @@ namespace CDS {
 			this.toolBar1.images = this.toolbarImages;
 			this.toolBar1.Location = new System.Drawing.Point(0, 0);
 			this.toolBar1.Name = "toolBar1";
-			this.toolBar1.Size = new System.Drawing.Size(712, 24);
+			this.toolBar1.Size = new System.Drawing.Size(744, 24);
 			this.toolBar1.TabIndex = 10;
 			// 
-			// collapser
+			// panel1
 			// 
-			this.collapser.BackColor = System.Drawing.SystemColors.Control;
-			this.collapser.Dock = System.Windows.Forms.DockStyle.Left;
-			this.collapser.Location = new System.Drawing.Point(0, 24);
-			this.collapser.Name = "collapser";
-			this.collapser.Size = new System.Drawing.Size(22, 385);
-			this.collapser.TabIndex = 11;
+			this.panel1.Controls.Add(this.ProjectTree);
+			this.panel1.Dock = System.Windows.Forms.DockStyle.Left;
+			this.panel1.Location = new System.Drawing.Point(0, 24);
+			this.panel1.Name = "panel1";
+			this.panel1.Size = new System.Drawing.Size(216, 393);
+			this.panel1.TabIndex = 13;
+			// 
+			// ProjectTree
+			// 
+			this.ProjectTree.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.ProjectTree.ImageIndex = -1;
+			this.ProjectTree.Location = new System.Drawing.Point(0, 0);
+			this.ProjectTree.Name = "ProjectTree";
+			this.ProjectTree.SelectedImageIndex = -1;
+			this.ProjectTree.Size = new System.Drawing.Size(216, 393);
+			this.ProjectTree.TabIndex = 2;
+			// 
+			// splitter1
+			// 
+			this.splitter1.Location = new System.Drawing.Point(216, 24);
+			this.splitter1.Name = "splitter1";
+			this.splitter1.Size = new System.Drawing.Size(3, 393);
+			this.splitter1.TabIndex = 14;
+			this.splitter1.TabStop = false;
 			// 
 			// ViewCtrl1
 			// 
 			this.ViewCtrl1.AllowDrop = true;
 			this.ViewCtrl1.Curr = null;
 			this.ViewCtrl1.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.ViewCtrl1.Location = new System.Drawing.Point(22, 24);
+			this.ViewCtrl1.Font = new System.Drawing.Font("Arial", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((System.Byte)(204)));
+			this.ViewCtrl1.Location = new System.Drawing.Point(219, 24);
 			this.ViewCtrl1.Name = "ViewCtrl1";
-			this.ViewCtrl1.Size = new System.Drawing.Size(690, 385);
-			this.ViewCtrl1.TabIndex = 12;
+			this.ViewCtrl1.Size = new System.Drawing.Size(525, 393);
+			this.ViewCtrl1.TabIndex = 15;
 			// 
 			// MainWnd
 			// 
 			this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
-			this.ClientSize = new System.Drawing.Size(712, 409);
+			this.ClientSize = new System.Drawing.Size(744, 417);
 			this.Controls.Add(this.ViewCtrl1);
-			this.Controls.Add(this.collapser);
+			this.Controls.Add(this.splitter1);
+			this.Controls.Add(this.panel1);
 			this.Controls.Add(this.toolBar1);
 			this.Location = new System.Drawing.Point(0, 0);
 			this.Menu = this.mainMenu1;
 			this.Name = "MainWnd";
 			this.Text = "C# UML Designer";
+			this.panel1.ResumeLayout(false);
 			this.ResumeLayout(false);
 
 		}
@@ -587,6 +657,14 @@ namespace CDS {
 		[STAThread]
 		static void Main() {
 			Application.Run(new MainWnd());
+		}
+
+		protected override void Dispose( bool disposing ) {
+			if( disposing ) {
+				if (components != null)
+					components.Dispose();
+			}
+			base.Dispose( disposing );
 		}
 
 		private bool SaveChanges() {
@@ -611,9 +689,7 @@ namespace CDS {
 		#region Menu actions
 
 		private void menu_NewProject_Click(object sender, System.EventArgs e) {
-			if( !SaveChanges() )
-				return;
-			TurnOnProject( Project.createNew() );
+			ToolbarAction( (int)ToolBarIcons.New );
 		}
 		
 		private void Exit(object sender, System.EventArgs e) {
@@ -630,31 +706,36 @@ namespace CDS {
 		}
 		
 		private void LoadProject(object sender, System.EventArgs e) {
-			Project q = Project.Load(this);
+			UmlDesignerSolution q = UmlDesignerSolution.Load(this);
 			if( q != null )
 				TurnOnProject( q );
 		}
 		
-		private void RefreshView() {
+		TreeNode views = null;
 
-			project_files.Nodes.Clear();
-			project_files.Nodes.Add( p.files );
-			p.files.Expand();
+		internal void RefreshProjectTree( bool update_projects ) {
 
-			project_classes.Nodes.Clear();
-			project_classes.Nodes.Add( p.classes );
-			p.classes.Expand();
-
-			project_views.Nodes.Clear();
-			project_views.Nodes.Add( p.views );
-			p.views.Expand();
+			if( update_projects ) {
+				ProjectTree.Nodes.Clear();
+				foreach( TreeNode t in p.projects )
+					ProjectTree.Nodes.Add( t );
+				if( views == null )
+					views = new TreeNode( "Diagrams", 2, 2 );
+				ProjectTree.Nodes.Add( views );
+			}
+			views.Nodes.Clear();
+			foreach( GUI.View v in p.diagrams ) {
+				TreeNode view = new TreeNode( v.name, 2, 2 );
+				view.Tag = v;
+				views.Nodes.Add( view );
+			}
 		}
 
-		public void RefreshTitle( ) {
+		public void RefreshTitle() {
 			this.Text = "C# UML Designer: " + p.name + " [" + ViewCtrl1.Curr.name + "]";
 		}
 
-		private void TurnOnProject( Project p ) {
+		private void TurnOnProject( UmlDesignerSolution p ) {
 
 			if( p.diagrams.Count == 0 )
 				return;
@@ -664,7 +745,7 @@ namespace CDS {
 
 			this.p = p;
 			p.container = this;
-			RefreshView();
+			RefreshProjectTree(true);
 			SelectView( (GUI.View)p.diagrams[0], true );
 			UpdateToolBar();
 		}
@@ -685,12 +766,16 @@ namespace CDS {
 			p.Refresh();
 		}
 
-		private void menuItem13_Click(object sender, System.EventArgs e) {
-			ViewCtrl1.Print();
+		private void menu_Print_Click(object sender, System.EventArgs e) {
+			ToolbarAction( (int)ToolBarIcons.print );
+		}
+
+		private void menu_PrintPreview_Click(object sender, System.EventArgs e) {
+			ToolbarAction( (int)ToolBarIcons.print_preview );
 		}
 
 		private void menu_AddStaticView_Click(object sender, System.EventArgs e) {
-            CDS.GUI.View v = p.newStaticView();
+            UMLDes.GUI.View v = p.newStaticView();
 			SelectView( v, true );
 		}
 
@@ -701,11 +786,11 @@ namespace CDS {
 		private void EditMenuPopup(object sender, System.EventArgs e) {
 			menu_Undo.Enabled = ViewCtrl1.Curr.undo.can_undo;
 			menu_Redo.Enabled = ViewCtrl1.Curr.undo.can_redo;
-			menu_Delete.Enabled = ViewCtrl1.Curr.IfEnabled( CDS.GUI.View.EditOperation.Delete );
-			menu_Cut.Enabled = ViewCtrl1.Curr.IfEnabled( CDS.GUI.View.EditOperation.Cut );
-			menu_Copy.Enabled = ViewCtrl1.Curr.IfEnabled( CDS.GUI.View.EditOperation.Copy );
-			menu_Paste.Enabled = ViewCtrl1.Curr.IfEnabled( CDS.GUI.View.EditOperation.Paste );
-			menu_SelectAll.Enabled = ViewCtrl1.Curr.IfEnabled( CDS.GUI.View.EditOperation.SelectAll );
+			menu_Delete.Enabled = ViewCtrl1.Curr.IfEnabled( UMLDes.GUI.View.EditOperation.Delete );
+			menu_Cut.Enabled = ViewCtrl1.Curr.IfEnabled( UMLDes.GUI.View.EditOperation.Cut );
+			menu_Copy.Enabled = ViewCtrl1.Curr.IfEnabled( UMLDes.GUI.View.EditOperation.Copy );
+			menu_Paste.Enabled = ViewCtrl1.Curr.IfEnabled( UMLDes.GUI.View.EditOperation.Paste );
+			menu_SelectAll.Enabled = ViewCtrl1.Curr.IfEnabled( UMLDes.GUI.View.EditOperation.SelectAll );
 		}
 
 		private void menu_Undo_Click(object sender, System.EventArgs e) {
@@ -717,23 +802,23 @@ namespace CDS {
 		}
 
 		private void menu_Copy_Click(object sender, System.EventArgs e) {
-			ViewCtrl1.Curr.DoOperation( CDS.GUI.View.EditOperation.Copy );
+			ViewCtrl1.Curr.DoOperation( UMLDes.GUI.View.EditOperation.Copy );
 		}
 
 		private void menu_Paste_Click(object sender, System.EventArgs e) {
-			ViewCtrl1.Curr.DoOperation( CDS.GUI.View.EditOperation.Paste );
+			ViewCtrl1.Curr.DoOperation( UMLDes.GUI.View.EditOperation.Paste );
 		}
 
 		private void menu_Cut_Click(object sender, System.EventArgs e) {
-			ViewCtrl1.Curr.DoOperation( CDS.GUI.View.EditOperation.Cut );
+			ViewCtrl1.Curr.DoOperation( UMLDes.GUI.View.EditOperation.Cut );
 		}
 
 		private void menuDeleteClick(object sender, System.EventArgs e) {
-			ViewCtrl1.Curr.DoOperation( CDS.GUI.View.EditOperation.Delete );
+			ViewCtrl1.Curr.DoOperation( UMLDes.GUI.View.EditOperation.Delete );
 		}
 
 		private void menu_SelectAll_Click(object sender, System.EventArgs e) {
-			ViewCtrl1.Curr.DoOperation( CDS.GUI.View.EditOperation.SelectAll );
+			ViewCtrl1.Curr.DoOperation( UMLDes.GUI.View.EditOperation.SelectAll );
 		}
 
 		#endregion
@@ -741,7 +826,7 @@ namespace CDS {
 		#region Drag & Drop and other tree ops
 
 		Rectangle dragbox = Rectangle.Empty;
-		CS_Element dragobject;
+		UmlObject dragobject;
 		
 		void TreeMouseDown(object sender, System.Windows.Forms.MouseEventArgs e) {
 			dragbox = Rectangle.Empty;
@@ -749,16 +834,16 @@ namespace CDS {
 				TreeNode node = (sender as TreeView).GetNodeAt( e.X, e.Y);
 				if( node != null && node.Tag != null ) {
 
-					if( node.Tag is CDS.GUI.View ) {
+					if( node.Tag is UMLDes.GUI.View ) {
 						if( e.Clicks == 2 ) {
-							CDS.GUI.View v = node.Tag as CDS.GUI.View;
+							UMLDes.GUI.View v = node.Tag as UMLDes.GUI.View;
 							SelectView( v, true );
 						}
 
-					} else if( !(node.Tag is Project) ) {
+					} else if( !(node.Tag is UmlDesignerSolution) ) {
 						Size dragSize = SystemInformation.DragSize;
 						dragbox = new Rectangle(new Point(e.X - (dragSize.Width /2), e.Y - (dragSize.Height /2)), dragSize);				
-						dragobject = (CS_Element)node.Tag;
+						dragobject = node.Tag as UmlObject;
 					}
 				}
 			}
@@ -768,7 +853,7 @@ namespace CDS {
 			if( (e.Button & MouseButtons.Left) == MouseButtons.Left ) {
 				if( dragbox != Rectangle.Empty && !dragbox.Contains( e.X,e.Y) ) {
 					ViewCtrl1.DragObject = dragobject;
-					DragDropEffects dropEffect = ((TreeView)sender).DoDragDrop( dragobject.name, DragDropEffects.Copy );
+					DragDropEffects dropEffect = ((TreeView)sender).DoDragDrop( dragobject.Name, DragDropEffects.Copy );
 					///....
 					dragbox = Rectangle.Empty;
 				}
@@ -781,14 +866,16 @@ namespace CDS {
 		}
 
 		private void BeforeLabelEdit(object sender, NodeLabelEditEventArgs e) {
-			e.CancelEdit = !( e.Node.Tag != null && (e.Node.Tag is CDS.GUI.View ) );
+			e.CancelEdit = !( e.Node.Tag != null && (e.Node.Tag is UMLDes.GUI.View ) );
 		}
 
 		private void AfterLabelEdit(object sender, NodeLabelEditEventArgs e) {
-			if( e.Node.Tag is CDS.GUI.View ) {
-				CDS.GUI.View v = e.Node.Tag as CDS.GUI.View;
-				v.name = e.Label;
+			if( e.Node.Tag is UMLDes.GUI.View ) {
+				UMLDes.GUI.View v = e.Node.Tag as UMLDes.GUI.View;
+				if( e.Label != null )
+					v.name = e.Label;
 			}
+			RefreshTitle();
 		}
 
 		private void tree_GiveFeedback(object sender, System.Windows.Forms.GiveFeedbackEventArgs e) {

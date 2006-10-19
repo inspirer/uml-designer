@@ -15,6 +15,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UMLDes.Model.Tests", "UMLDe
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UMLDes.StaticView", "UMLDes.StaticView\UMLDes.StaticView.csproj", "{87E3F2EA-4E3B-4173-930C-AF8B27483A64}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UMLDes.View", "UMLDes.View\UMLDes.View.csproj", "{C6D62654-63E2-40E7-9AA1-B5189A9A3679}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UMLDes.Controls", "UMLDes.Controls\UMLDes.Controls.csproj", "{38F513AE-8D16-4688-B506-994040522E86}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -37,6 +49,18 @@ Global
 		{D5B51867-B862-4A06-936F-D6EA1CF2B075}.Debug.Build.0 = Debug|.NET
 		{D5B51867-B862-4A06-936F-D6EA1CF2B075}.Release.ActiveCfg = Release|.NET
 		{D5B51867-B862-4A06-936F-D6EA1CF2B075}.Release.Build.0 = Release|.NET
+		{87E3F2EA-4E3B-4173-930C-AF8B27483A64}.Debug.ActiveCfg = Debug|.NET
+		{87E3F2EA-4E3B-4173-930C-AF8B27483A64}.Debug.Build.0 = Debug|.NET
+		{87E3F2EA-4E3B-4173-930C-AF8B27483A64}.Release.ActiveCfg = Release|.NET
+		{87E3F2EA-4E3B-4173-930C-AF8B27483A64}.Release.Build.0 = Release|.NET
+		{C6D62654-63E2-40E7-9AA1-B5189A9A3679}.Debug.ActiveCfg = Debug|.NET
+		{C6D62654-63E2-40E7-9AA1-B5189A9A3679}.Debug.Build.0 = Debug|.NET
+		{C6D62654-63E2-40E7-9AA1-B5189A9A3679}.Release.ActiveCfg = Release|.NET
+		{C6D62654-63E2-40E7-9AA1-B5189A9A3679}.Release.Build.0 = Release|.NET
+		{38F513AE-8D16-4688-B506-994040522E86}.Debug.ActiveCfg = Debug|.NET
+		{38F513AE-8D16-4688-B506-994040522E86}.Debug.Build.0 = Debug|.NET
+		{38F513AE-8D16-4688-B506-994040522E86}.Release.ActiveCfg = Release|.NET
+		{38F513AE-8D16-4688-B506-994040522E86}.Release.Build.0 = Release|.NET
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

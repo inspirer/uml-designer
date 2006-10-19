@@ -821,6 +821,7 @@ namespace UMLDes.CSharp.Nodes {
 
 		internal static MethodDecl Operator( ModifiersNode mod, TypeNode type, IdentNode name, ParameterNode op1, ParameterNode op2, Symbol s ) {
             ListNode ln = new ListNode();
+			ln.nodes = new ArrayList();
 			ln.nodes.Add( op1 );
 			if( op2 != null ) 
 				ln.nodes.Add( op2 );

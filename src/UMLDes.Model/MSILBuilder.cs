@@ -40,11 +40,14 @@ namespace UMLDes.Model.MSIL {
 
 			if( !File.Exists( dllname ) )
 				return false;
+			if( proj.write_time.Equals( File.GetLastWriteTime( dllname ) ) )
+				return true;
 			System.Reflection.Assembly assem = System.Reflection.Assembly.LoadFile( dllname );
 			if( assem == null )
 				return false;
 
 			proj.name = assem.FullName;
+			proj.write_time = File.GetLastWriteTime( dllname );
 			proj.refs = new ArrayList();
 			foreach( AssemblyName refasm in assem.GetReferencedAssemblies() )
 				proj.refs.Add( refasm.FullName );
