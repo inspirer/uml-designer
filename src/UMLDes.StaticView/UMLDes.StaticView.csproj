@@ -134,7 +134,7 @@
                     BuildAction = "Compile"
                 />
                 <File
-                    RelPath = "GuiBinded.cs"
+                    RelPath = "GuiBindedString.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
@@ -145,6 +145,16 @@
                 />
                 <File
                     RelPath = "GuiConnection.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "GuiEnum.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "GuiInterfaces.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
@@ -175,6 +185,11 @@
                 />
                 <File
                     RelPath = "GuiPolygonItem.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "GuiRectangle.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />

@@ -10,6 +10,8 @@ using UMLDes.CSharp.Nodes;
 
 namespace UMLDes.Model.CSharp {
 
+	public delegate void StatusNotifier( string new_status );
+
 	public class ModelBuilder {
 
 		public static UmlModel CreateEmptyModel() {
@@ -26,9 +28,29 @@ namespace UMLDes.Model.CSharp {
 			m.projects.Add( p );
 		}
 
-		public static void UpdateModel( UmlModel model, out ArrayList errors ) {
+		public static void AddProjectFromSLN( UmlModel m, string slnname ) {
+			System.Environment.CurrentDirectory = Path.GetDirectoryName( slnname );
+			try {
+				System.Text.RegularExpressions.Regex re = new System.Text.RegularExpressions.Regex( @"^Project\(.*\)\s+=\s+"".*"",\s+""(.*)"",\s+"".*""$" );
+				using( StreamReader sr = new StreamReader( slnname ) ) {
+					string line;
+					while ((line = sr.ReadLine()) != null) {
+						System.Text.RegularExpressions.Match mt = re.Match(line);
+						if( mt.Success ) {
+							string filename = mt.Groups[1].Value;
+							if( filename.ToLower().EndsWith( ".csproj" ) && File.Exists( filename ) )
+								AddProject( m, Path.GetFullPath( filename ) );
+						}						
+					}
+				}
+			} catch {
+			}
+		}
+
+		public static void UpdateModel( UmlModel model, out ArrayList errors, StatusNotifier sn ) {
 			ModelBuilder mb = new ModelBuilder();
 			mb.model = model;
+			mb.notify = sn;
 			mb.Update();
 			errors = mb.errors.Count > 0 ? mb.errors : null;
 		}
@@ -39,16 +61,23 @@ namespace UMLDes.Model.CSharp {
 
 		// model engine vars
 
+		StatusNotifier notify;
 		UmlModel model;
 		ArrayList errors = new ArrayList();
 		Hashtable classes = new Hashtable();
 		ArrayList added_classes = new ArrayList();
 		ArrayList deleted_classes = new ArrayList();
 
+		void Notify( string s ) {
+			if( notify != null )
+				notify( s );
+		}
+
 		#region Model Update
 
 		void Update() {
 
+			Notify( "updating projects information" );
 			if( !UpdateStudioProjects( model ) ) {
 				errors.Add( "Project files are absent or corrupt" );
 				return;
@@ -58,6 +87,7 @@ namespace UMLDes.Model.CSharp {
 
 			// parse all files, collect NS
 			foreach( UmlProject p in model.projects ) {
+				Notify( "parsing " + p.uid );
 				ArrayList parsed_files = new ArrayList();
 				foreach( string file in p.files ) {
 					string text;
@@ -87,6 +117,8 @@ namespace UMLDes.Model.CSharp {
 			// Stage #1: build namespaces and types for each project
 			foreach( UmlProject p in model.projects ) {
 
+				Notify( "updating structure: " + p.uid );
+
 				if( p.root == null ) {
 					p.root = new UmlNamespace();
 					p.name = String.Empty;
@@ -103,6 +135,7 @@ namespace UMLDes.Model.CSharp {
 			// Stage #2: Building project references, Resolving inheritances
 
 			// fix references, initialize resolving system
+			Notify( "updating references" );
 			BuildReferences();
 
 			if( errors.Count > 0 )
@@ -113,6 +146,8 @@ namespace UMLDes.Model.CSharp {
 				CollectDeleted( p.root );
 			model.Visit( new UmlObject.Visitor( SetParentAndBuildHash ), null );
 
+			Notify( "resolving inheritances" );
+
 			// resolve inheritaces for classes
 			foreach( UmlType ent in classes.Keys )
                 switch( ent.Kind ) {
@@ -121,13 +156,16 @@ namespace UMLDes.Model.CSharp {
 					case UmlKind.Struct:
 						ClassDecl cdecl = (ClassDecl)classes[ent];
 						if( cdecl.inheritance != null && cdecl.inheritance.nodes.Count > 0 ) {
+							((UmlClass)ent).BaseObjects = new ArrayList();
 							((UmlClass)ent).BaseList = new ArrayList();
 							foreach( IdentNode id in cdecl.inheritance.nodes ) {
 								UmlType resolved = ResolveType( id.identifier, ent );
 								if( resolved == null )
 									errors.Add( "cannot resolve inheritance: " + id.identifier + " in " + ent.Name );
-								else
+								else {
 									((UmlClass)ent).BaseList.Add( resolved );
+									((UmlClass)ent).BaseObjects.Add( UmlModel.GetUniversal(resolved) );
+								}
 							}
 						}
 						break;
@@ -135,6 +173,8 @@ namespace UMLDes.Model.CSharp {
 
 			// for MSIL we build only Base class
 			BuildMSILInheritances();
+
+			Notify( "updating members" );
 
 			// Stage #3: Building members
 			foreach( UmlType ent in classes.Keys )
@@ -145,10 +185,12 @@ namespace UMLDes.Model.CSharp {
 						ClassDecl cdecl = (ClassDecl)classes[ent];
 						UpdateClass( (UmlClass)ent, cdecl );
 						break;
+					case UmlKind.Enum:
+						UpdateEnum( (UmlEnum)ent, (EnumDecl)classes[ent] );
+						break;
 				}
 
-			if( errors.Count > 0 )
-				return;
+			Notify( "Done" );
 		}
 
 		private static void SetParentAndBuildHash( UmlObject elem, UmlObject parent ) {
@@ -156,7 +198,10 @@ namespace UMLDes.Model.CSharp {
 			if( elem is UmlClass ) {
 				// hash class Children
                 UmlClass cl = (UmlClass)elem;
-				cl.Children = new Hashtable();
+				if( cl.Children == null )
+					cl.Children = new Hashtable();
+				else
+					cl.Children.Clear();
 				if( cl.Types != null )
 					foreach( UmlType t in cl.Types )
 						cl.Children[t.name] = t;
@@ -164,7 +209,10 @@ namespace UMLDes.Model.CSharp {
 			} else if( elem is UmlNamespace ) {
 				// hash namespace Children
 				UmlNamespace ns = (UmlNamespace)elem;
-				ns.Children = new Hashtable();
+				if( ns.Children == null )
+					ns.Children = new Hashtable();
+				else
+					ns.Children.Clear();
 				if( ns.Types != null )
 					foreach( UmlType t in ns.Types )
 						ns.Children[t.name] = t;
@@ -234,7 +282,8 @@ namespace UMLDes.Model.CSharp {
 					p.name = null;
 					p.files = new ArrayList();
 					p.refs = new ArrayList();
-					p.root = new UmlNamespace();
+					if( p.root == null )
+						p.root = new UmlNamespace();
 					CreateProjectFromXml( doc, p );
 					if( p.name == null )
 						p.name = Path.GetFileNameWithoutExtension(p.filename);
@@ -781,20 +830,23 @@ namespace UMLDes.Model.CSharp {
 						case Kind.Destructor:
 							MethodDecl cdtor = (MethodDecl)decl;
 							name = decl.kind == Kind.Constructor ? cdtor.name.identifier : "~" + cdtor.name.identifier;
-							UmlMember cdmemb = GetMember( name, GenerateSignature( name, cdtor.parameters, cl, false ), cdtor.modifiers, decl.kind == Kind.Constructor ? UmlKind.Constructor : UmlKind.Destructor, cl );
+							UmlMethod cdmemb = (UmlMethod)GetMember( name, GenerateSignature( name, cdtor.parameters, cl, false ), cdtor.modifiers, decl.kind == Kind.Constructor ? UmlKind.Constructor : UmlKind.Destructor, cl );
+							cdmemb.Params = GetParameters( cdtor.parameters, cl );
 							break;
 						case Kind.ConversionOperator:
 							meth = (MethodDecl)decl;
 							name = "operator " + GetFullTypeName( GetTypeName( meth.return_type ), cl );
 							UmlOperator op = (UmlOperator)GetMember( name, GenerateSignature( name, meth.parameters, cl, false ), meth.modifiers, UmlKind.Operator, cl );
+							op.Params = GetParameters( meth.parameters, cl );
 							break;
 						case Kind.Property:
 							PropertyNode prop = (PropertyNode)decl;
 							UmlProperty p = (UmlProperty)GetMember( prop.name.identifier, prop.name.identifier, prop.modifiers, UmlKind.Property, cl );
 							p.Type = GetFullTypeName( GetTypeName( prop.type ), cl );
 							p.Accessors = string.Empty;
-							foreach( AccessorNode an in prop.accessors.nodes )
-								p.Accessors += an.name.identifier + ";";
+							if( prop.accessors != null ) 
+								foreach( AccessorNode an in prop.accessors.nodes )
+									p.Accessors += an.name.identifier + ";";
 							break;
 						case Kind.EventVars:
 							UmlEvent ev;
@@ -803,17 +855,23 @@ namespace UMLDes.Model.CSharp {
 							foreach( VariableNode n in evnt.vars.nodes ) {
 								ev = (UmlEvent)GetMember( n.name.identifier, n.name.identifier, evnt.modifiers, UmlKind.Event, cl );
 								ev.Type = type;
+								ev.Accessors = null;
 							}
 							break;
 						case Kind.EventWithAccessors:
 							evnt = (EventNode)decl;
 							ev = (UmlEvent)GetMember( evnt.name.identifier, evnt.name.identifier, evnt.modifiers, UmlKind.Event, cl );
 							ev.Type = GetFullTypeName( GetTypeName( evnt.type ), cl );
+							ev.Accessors = String.Empty;
+							if( evnt.accessors != null )
+								foreach( AccessorNode an in evnt.accessors.nodes )
+									ev.Accessors += an.name.identifier + ";";
 							break;
 						case Kind.Indexer:
 							IndexerNode inode = (IndexerNode)decl;
 							UmlIndexer indx = (UmlIndexer)GetMember( inode.name.identifier, GenerateSignature( inode.name.identifier, inode.formal_params, cl, true ), inode.modifiers, UmlKind.Indexer, cl );
-							indx.Type = GetFullTypeName( GetTypeName( inode.type ), cl );
+							indx.ReturnType = GetFullTypeName( GetTypeName( inode.type ), cl );
+							indx.Params = GetParameters( inode.formal_params, cl );
 							break;
 						case Kind.Delegate:
 						case Kind.Enum:
@@ -827,12 +885,31 @@ namespace UMLDes.Model.CSharp {
 					}
 
 			// kill deleted
+			if( cl.Members != null )
+				for( int i = 0; i < cl.Members.Count; i++ ) {
+					UmlObject obj = (UmlObject)cl.Members[i];
+					if( obj.Deleted ) {
+						cl.Members.RemoveAt( i );
+						i--;
+					}
+				}
 
 		}
 
-		/*private void FillEnum( UmlEnum en, EnumDecl enumdecl ) {
+		private void UpdateEnum( UmlEnum en, EnumDecl enumdecl ) {
+			if( en.Members == null )
+				en.Members = new ArrayList();
+			else
+				en.Members.Clear();
+			if( enumdecl.children != null )
+				foreach( EnumValueNode j in enumdecl.children.nodes ) {
+					UmlEnumField uef = new UmlEnumField();
+					uef.name = j.name.identifier;
+					en.Members.Add( uef );
+				}
 		}
 
+		/*
 		private void FillDelegate( UmlDelegate deleg, DelegateNode decl ) {
 		}*/
 
@@ -916,25 +993,40 @@ namespace UMLDes.Model.CSharp {
 		/// <summary>
 		/// Search typename in namespace 'qual_name' in curr and refs projects
 		/// </summary>
-		private UmlType SearchInUsing( ArrayList refs, UmlProject curr, string qual_name, string typename ) {
+		private UmlType SearchInUsing( ArrayList refs, UmlProject curr, string qual_name, string typename, string scope_ns ) {
 
-			UmlType res;
-			UmlObject ns = GetTypeOrNS( curr, qual_name );
-			if( ns != null ) {
-				res = SearchInside( ns, typename );
-				if( res != null )
-					return res;
-			}
+			do {
+				string where = Combine( scope_ns, qual_name );
 
-			// search referenced projects
-			foreach( UmlProject r in refs ) {
-				ns = GetTypeOrNS( r, qual_name );
+				UmlType res;
+				UmlObject ns = GetTypeOrNS( curr, where );
 				if( ns != null ) {
 					res = SearchInside( ns, typename );
 					if( res != null )
 						return res;
 				}
-			}
+
+				// search referenced projects
+				foreach( UmlProject r in refs ) {
+					ns = GetTypeOrNS( r, where );
+					if( ns != null ) {
+						res = SearchInside( ns, typename );
+						if( res != null )
+							return res;
+					}
+				}
+
+				if( scope_ns.Length == 0 )
+					break;
+
+				int ind = scope_ns.LastIndexOf( '.' );
+				if( ind >= 0 )
+					scope_ns = scope_ns.Substring( 0, ind );
+				else
+					scope_ns = String.Empty;
+
+			} while(true);
+
 			return null;
 		}
 
@@ -984,6 +1076,8 @@ namespace UMLDes.Model.CSharp {
 				} else
 					cusings = null;
 
+			restart_search:
+
 				// search in current scope
 				if( current is UmlTypeHolder ) {
 					res = SearchInScope( proj.refs, current, typename );
@@ -994,14 +1088,21 @@ namespace UMLDes.Model.CSharp {
 						if( cusings.aliases.ContainsKey( N ) ) {
 							string right = (string)cusings.aliases[N];
 							if( I != null )
-								res = SearchInUsing( proj.refs, proj, right, I );
-							else
-								res = SearchInScope( proj.refs, proj.root, right );
-							return res;
+								return SearchInUsing( proj.refs, proj, right, I, UmlModel.GetFullQualified(current) );
+							else {
+								// restart search in the current scope with new typename
+								typename = right;
+								index = typename.IndexOf( '.' );
+								N = index == -1 ? typename : typename.Substring( 0, index );
+								I = index == -1 ? null : typename.Substring( index + 1 );
+								goto restart_search;
+							}
+							
 						}
 
 						foreach( string use in cusings.list ) {
-							res = SearchInUsing( proj.refs, proj, use, typename );
+
+							res = SearchInUsing( proj.refs, proj, use, typename, UmlModel.GetFullQualified(current) );
 							if( res != null )
 								return res;
 						}

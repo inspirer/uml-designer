@@ -33,6 +33,7 @@ namespace UMLDes {
 				SaveFileDialog f = new SaveFileDialog();
 				f.AddExtension = true;
 				f.DefaultExt = "umldes";
+				f.Filter = "Project files (*.umldes)|*.umldes|All files (*.*)|*.*";
 				if( f.ShowDialog() != DialogResult.OK )
 					return;
 				projectfile = f.FileName;
@@ -103,7 +104,7 @@ namespace UMLDes {
 			SelectNameFor( d );
 			diagrams.Add( d );
 			d.proj = this;
-			container.RefreshProjectTree(false);
+			container.SolutionTree.RefreshDiagrams();
 			return d;
 		}
 
@@ -123,8 +124,6 @@ namespace UMLDes {
 					container.SelectView( d, false );	// TODO bad code
 				d.PostLoad();
 			}
-
-			RebuildProjectTree();
 		}
 
 		/// <summary>
@@ -133,13 +132,18 @@ namespace UMLDes {
 		public void AddFile() {
 			OpenFileDialog f = new OpenFileDialog();
 			f.Multiselect = true;
-			f.Filter = "C# project files (*.csproj)|*.csproj|All files (*.*)|*.*";
+			f.Filter = "Supported files (*.sln, *.csproj)|*.sln;*.csproj|Solutions Files (*.sln)|*.|C# project files (*.csproj)|*.csproj|All files (*.*)|*.*";
 			if( f.ShowDialog() != DialogResult.OK )
 				return;
 			foreach( string name in f.FileNames ) {
-				ModelBuilder.AddProject( model, name );
+				if( name.ToLower().EndsWith( ".csproj" ) )
+					ModelBuilder.AddProject( model, name );
+				else if( name.ToLower().EndsWith( ".sln" ) ) {
+					ModelBuilder.AddProjectFromSLN( model, name );
+				} else
+					MessageBox.Show( "unknown file type:\n" + name, "Loading error", MessageBoxButtons.OK, MessageBoxIcon.Error );
 			}
-			RebuildProjectTree();
+			container.SolutionTree.RefreshModel();
 		}
 
 		/// <summary>
@@ -147,157 +151,21 @@ namespace UMLDes {
 		/// </summary>
 		public void Refresh() {
 			ArrayList errors;
-			ModelBuilder.UpdateModel( model, out errors );
+			ModelBuilder.UpdateModel( model, out errors, new StatusNotifier(container.SetStatus) );
+			container.SetStatus( "Ready" );
 			if( errors != null && errors.Count > 0 ) {
 				System.Text.StringBuilder sb = new System.Text.StringBuilder();
 				foreach( string s in errors )
 					sb.Append( s + "\n" );
 				MessageBox.Show( sb.ToString(), "Errors", MessageBoxButtons.OK, MessageBoxIcon.Error );
 			} else {
-				RebuildProjectTree();
+				container.SolutionTree.RefreshModel();
+				foreach( UMLDes.GUI.View v in diagrams )
+					v.RefreshContent();
 			}
 			GC.Collect();
 		}
 		
-		#region Icon for UmlObject
-
-		/// <summary>
-		/// determines the visibility of the element (looks at modifiers)
-		/// </summary>
-		/// <param name="e">C# element</param>
-		/// <returns>0 - public, 1 - private, 2 - protected</returns>
-		int access_of_modifier( UmlObject e ) {
-			if( e is UmlMember ) 
-				switch( ((UmlMember)e).visibility ) {
-					case UmlVisibility.Public:
-						return 0;
-					case UmlVisibility.Internal:
-					case UmlVisibility.Private:
-						return 1;
-					case UmlVisibility.Protected:
-					case UmlVisibility.ProtectedInternal:
-						return 2;
-				}
-			else if( e is UmlClass )
-				return 0; // TODO
-			return 1;
-		}
-		
-		/// <summary>
-		/// returns the number of icon for the given element
-		/// </summary>
-		/// <param name="e">C# element</param>
-		int IconForElement( UmlObject e ) {
-			switch( e.Kind ) {
-				case UmlKind.Namespace:
-					return 5;
-				case UmlKind.Class:
-					return 6 + access_of_modifier(e);
-				case UmlKind.Interface:
-					return 9 + access_of_modifier(e);
-				case UmlKind.Struct:
-					return 12 + access_of_modifier(e);
-				case UmlKind.Method:
-					return 15 + access_of_modifier(e);
-				case UmlKind.Delegate:
-					return 18 + access_of_modifier(e);
-				case UmlKind.Enum:
-					return 21 + access_of_modifier(e);
-				case UmlKind.Field:
-					return 25 + access_of_modifier(e);
-				case UmlKind.Event:
-					return 28 + access_of_modifier(e);
-				case UmlKind.Indexer:
-					return 31 + access_of_modifier(e);
-				case UmlKind.Operator:
-					return 34;
-			}
-			
-			// unknown element, strange
-			return 24; 
-		}
-
-		#endregion
-
-		#region ReBuild projects Tree for the current model
-
-		/// <summary>
-		/// recursive routine to transform elements to Tree Nodes
-		/// </summary>
-		/// <param name="dir">destination node</param>
-		/// <param name="from">source element tree</param>
-		void CopyNodes( TreeNode dir, UmlObject from ) {
-
-			TreeNode t;
-
-			if( from is UmlTypeHolder ) {
-
-				UmlNamespace ns = from as UmlNamespace;
-				if( ns != null && ns.SubNamespaces != null )
-					foreach( UmlObject s in ns.SubNamespaces ) {
-						int icon = IconForElement( s );
-						t = new TreeNode( s.Name, icon, icon );
-						CopyNodes( t, s );
-						t.Tag = s;
-						dir.Nodes.Add( t );
-					}
-
-				foreach( UmlObject s in ((UmlTypeHolder)from).Types ) {
-					int icon = IconForElement( s );
-					t = new TreeNode( s.Name, icon, icon );
-					CopyNodes( t, s );
-					t.Tag = s;
-					dir.Nodes.Add( t );
-				}
-				
-				if( from is UmlClass ) {
-					UmlClass cl = (UmlClass)from;
-					if( cl.Members != null )
-						foreach( UmlObject m in cl.Members ) {
-							int icon = IconForElement( m );
-							t = new TreeNode( m.Name, icon, icon );
-							dir.Nodes.Add( t );
-						}
-				}
-			} 
-			
-		}
-
-		/// <summary>
-		/// Loads parsed elements tree into the treeview
-		/// </summary>
-		/// <param name="root">C# elements tree</param>
-		void RebuildProjectTree() {
-			TreeNode t;
-			projects.Clear();
-
-			// source projects
-			foreach( UmlProject p in model.projects ) {
-				t = new TreeNode( p.uid != null ? p.uid : p.name, 1, 1 );
-				CopyNodes( t, p.root );
-				t.Tag = p;
-				projects.Add( t );
-			}
-
-			// references
-			if( model.dllprojs.Count > 0 ) {
-                TreeNode refs = new TreeNode( "References", 35, 35 );
-				projects.Add( refs );
-				foreach( UmlProject p in model.dllprojs ) {
-					t = new TreeNode( p.uid != null ? p.uid : p.name, 36, 36 );
-					CopyNodes( t, p.root );
-					t.Tag = p;
-					refs.Nodes.Add( t );
-				}
-			}
-
-			// refresh tree
-			if( container != null )
-				container.RefreshProjectTree(true);
-		}
-
-		#endregion
-
 		#region ISolution support
 
 		UmlModel GUI.ISolution.model { 
@@ -312,12 +180,14 @@ namespace UMLDes {
 			}
 		}
 
-		void GUI.ISolution.UpdateToolBar() {
-			container.UpdateToolBar();
+		UMLDes.Controls.FlatToolBar GUI.ISolution.tool_bar {
+			get {
+				return container.toolBar1;
+			}
 		}
 
-		void GUI.ISolution.SetDefaultDrawingMode() {
-			container.SetDefaultDrawingMode();
+		void GUI.ISolution.UpdateToolBar() {
+			container.UpdateToolBar();
 		}
 
 		#endregion

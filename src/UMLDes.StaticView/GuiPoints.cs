@@ -138,7 +138,7 @@ namespace UMLDes.GUI {
 
 		[XmlAttribute] public bool hyphen = true;
 		[XmlIgnore] bool Hyphen { get { return hyphen && ((GuiConnection)root).CanHaveHyphen; } }
-		[XmlIgnore] Geometry.Direction hyphen_dir = Geometry.Direction.Null;
+		[XmlIgnore] internal Geometry.Direction hyphen_dir = Geometry.Direction.Null;
 		[XmlIgnore] int hx, hy;
 
 		#region Constructors

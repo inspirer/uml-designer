@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using System.Data;
 using UMLDes.Model;
 using UMLDes.GUI;
+using UMLDes.Controls;
 
 namespace UMLDes {
 
@@ -14,7 +15,7 @@ namespace UMLDes {
 		private UMLDes.Controls.FlatMenuItem menuItem4;
 		private System.Windows.Forms.MainMenu mainMenu1;
 		private System.Windows.Forms.ImageList treeImages;
-		private UMLDes.Controls.FlatToolBar toolBar1;
+		public UMLDes.Controls.FlatToolBar toolBar1;
 		private System.Windows.Forms.ImageList toolbarImages;
 		
 		public UmlDesignerSolution p;
@@ -45,9 +46,13 @@ namespace UMLDes {
 		private System.Windows.Forms.Panel panel1;
 		private System.Windows.Forms.Splitter splitter1;
 		private UMLDes.ViewCtrl ViewCtrl1;
-		private System.Windows.Forms.TreeView ProjectTree;
+		private UMLDes.Controls.UmlSolutionTree ProjectTree;
 		private UMLDes.Controls.FlatMenuItem menu_PrintPreview;
+		private UMLDes.Controls.FlatMenuItem menu_show_hints;
+		private System.Windows.Forms.StatusBar statusBar1;
+		internal System.Windows.Forms.StatusBarPanel status_panel;
 		public ImageList list;
+		public UMLDes.Controls.UmlSolutionTree SolutionTree { get { return ProjectTree; } }
 		
 		public MainWnd() {
 			InitializeComponent();
@@ -59,10 +64,9 @@ namespace UMLDes {
 
 		#region ToolBar/Tree initialization
 
-		void initialize_tree_view( TreeView tv ) {
+		void initialize_tree_view( UMLDes.Controls.UmlSolutionTree tv ) {
 			tv.BackColor = System.Drawing.SystemColors.Window;
 			tv.ImageList = this.treeImages;
-			tv.Location = new System.Drawing.Point(0, 0);
 			tv.LabelEdit = true;
 			tv.BeforeLabelEdit +=new NodeLabelEditEventHandler(BeforeLabelEdit);
 			tv.AfterLabelEdit +=new NodeLabelEditEventHandler(AfterLabelEdit);
@@ -85,7 +89,11 @@ namespace UMLDes {
 			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.New, "New project", m );
 			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.Open, "Open project", m );
 			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.Save, "Save", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.Saveall, "Save all", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.Saveas, "Save as", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.add_file, "Add files", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.new_diagram, "New Static View", m );
+			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.refresh, "Refresh model", m );
 			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
 			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.print, "Print", m );
 			p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.print_preview, "Print Preview", m );
@@ -97,25 +105,6 @@ namespace UMLDes {
 			tool_undo = p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.undo, "Undo", m );
 			tool_redo = p.AddButton( UMLDes.Controls.FlatButtonType.Simple, (int)ToolBarIcons.redo, "Redo", m );
 			tool_cut.disabled = tool_copy.disabled = tool_paste.disabled = true;
-
-			// UML Elements drawing
-			p = toolBar1.AddPanel( 0, "UML" );
-			defbutton = p.AddButton( UMLDes.Controls.FlatButtonType.RadioDown, (int)ToolBarIcons.arrow, "Select", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.conn_inher, "Draw inhreitance", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.conn_assoc, "Draw association", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.conn_aggregation, "Draw aggregation", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Line, 0, null, null );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.memo, "Draw memo", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.package, "Draw package", m ).disabled = true;
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.actor, "Draw actor", m ).disabled = true;
-			drawingmode = p;
-
-			p = toolBar1.AddPanel( 0, "Default line type" );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.straight_conn, "Line", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.segmented_conn, "Segmented", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.RadioDown, (int)ToolBarIcons.quadric_conn, "Quadric", m );
-			p.AddButton( UMLDes.Controls.FlatButtonType.Radio, (int)ToolBarIcons.curved_conn, "Bezier", m ).disabled = true;
 
 			// Scale menu
 			p = toolBar1.AddPanel( 0, "Scale" );
@@ -162,7 +151,17 @@ namespace UMLDes {
 				case ToolBarIcons.Save:   // Save
 					SaveProject( null, null );
 					break;
-				case ToolBarIcons.Saveall:   // Saveall
+				case ToolBarIcons.Saveas:   // Saveas
+					SaveAsProject( null, null );
+					break;
+				case ToolBarIcons.add_file: // Add files
+					AddFiles(null, null);
+					break;
+				case ToolBarIcons.new_diagram: // New Static view
+					menu_AddStaticView_Click(null, null);
+					break;
+				case ToolBarIcons.refresh:  // Refresh tree
+					RefreshProject(null, null);
 					break;
 				case ToolBarIcons.print:
 					ViewCtrl1.Print(false);
@@ -181,51 +180,7 @@ namespace UMLDes {
 				case ToolBarIcons.paste:
 					MessageBox.Show( "CopyPaste" + ((ToolBarIcons)index).ToString() );
 					break;
-				// what to do
-				case ToolBarIcons.arrow:
-					ViewCtrl1.Curr.mouseagent.current_operation = 0;
-					break;
-				case ToolBarIcons.conn_inher:
-					ViewCtrl1.Curr.mouseagent.current_operation = 1;
-					ViewCtrl1.Curr.mouseagent.current_param1 = 0;
-					ViewCtrl1.Curr.mouseagent.current_param2 = current_line_type;
-					break;
-				case ToolBarIcons.conn_assoc:
-					ViewCtrl1.Curr.mouseagent.current_operation = 1;
-					ViewCtrl1.Curr.mouseagent.current_param1 = 1;
-					ViewCtrl1.Curr.mouseagent.current_param2 = current_line_type;
-					break;
-				case ToolBarIcons.conn_aggregation:
-					ViewCtrl1.Curr.mouseagent.current_operation = 1;
-					ViewCtrl1.Curr.mouseagent.current_param1 = 2;
-					ViewCtrl1.Curr.mouseagent.current_param2 = current_line_type;
-					break;
-				case ToolBarIcons.memo: 
-					ViewCtrl1.Curr.mouseagent.current_operation = 2;
-					break;
-				// line type
-				case ToolBarIcons.straight_conn: 
-					current_line_type = 0;
-					break;
-				case ToolBarIcons.segmented_conn: 
-					current_line_type = 1;
-					break;
-				case ToolBarIcons.quadric_conn: 
-					current_line_type = 2;
-					break;
-				case ToolBarIcons.curved_conn:
-					current_line_type = 3;
-					break;
 			}
-		}
-
-		int current_line_type = 2;
-		UMLDes.Controls.FlatToolBarPanel drawingmode;
-		UMLDes.Controls.FlatToolBarButton defbutton;
-
-		public void SetDefaultDrawingMode() {
-			ViewCtrl1.Curr.mouseagent.current_operation = 0;
-			drawingmode.MakeRadioDown( defbutton );
 		}
 
 		static int[] scalevalue = new int[] {
@@ -248,7 +203,6 @@ namespace UMLDes {
 
 		protected void ScaleChanged( object v, EventArgs e ) {
 			ViewCtrl1.SetupScale( scalevalue[scalecombo.SelectedIndex*2], scalevalue[scalecombo.SelectedIndex*2+1] );			
-			SetDefaultDrawingMode();
 		}
 
 		#endregion
@@ -264,6 +218,7 @@ namespace UMLDes {
 			this.menu_About = new UMLDes.Controls.FlatMenuItem();
 			this.toolbarImages = new System.Windows.Forms.ImageList(this.components);
 			this.menumain_Help = new UMLDes.Controls.FlatMenuItem();
+			this.menu_show_hints = new UMLDes.Controls.FlatMenuItem();
 			this.menu_GC_Collect = new UMLDes.Controls.FlatMenuItem();
 			this.mainMenu1 = new System.Windows.Forms.MainMenu();
 			this.menumain_File = new UMLDes.Controls.FlatMenuItem();
@@ -292,10 +247,13 @@ namespace UMLDes {
 			this.treeImages = new System.Windows.Forms.ImageList(this.components);
 			this.toolBar1 = new UMLDes.Controls.FlatToolBar();
 			this.panel1 = new System.Windows.Forms.Panel();
-			this.ProjectTree = new System.Windows.Forms.TreeView();
+			this.ProjectTree = new UMLDes.Controls.UmlSolutionTree();
 			this.splitter1 = new System.Windows.Forms.Splitter();
 			this.ViewCtrl1 = new UMLDes.ViewCtrl();
+			this.statusBar1 = new System.Windows.Forms.StatusBar();
+			this.status_panel = new System.Windows.Forms.StatusBarPanel();
 			this.panel1.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)(this.status_panel)).BeginInit();
 			this.SuspendLayout();
 			// 
 			// menu_About
@@ -320,16 +278,25 @@ namespace UMLDes {
 			this.menumain_Help.Index = 3;
 			this.menumain_Help.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
 																						  this.menu_About,
+																						  this.menu_show_hints,
 																						  this.menu_GC_Collect});
 			this.menumain_Help.OwnerDraw = true;
 			this.menumain_Help.Text = "&Help";
 			this.menumain_Help.Popup += new System.EventHandler(this.Help_Popup);
 			// 
+			// menu_show_hints
+			// 
+			this.menu_show_hints.ImageIndex = 0;
+			this.menu_show_hints.Images = null;
+			this.menu_show_hints.Index = 1;
+			this.menu_show_hints.OwnerDraw = true;
+			this.menu_show_hints.Text = "Show &hints";
+			// 
 			// menu_GC_Collect
 			// 
 			this.menu_GC_Collect.ImageIndex = 0;
 			this.menu_GC_Collect.Images = null;
-			this.menu_GC_Collect.Index = 1;
+			this.menu_GC_Collect.Index = 2;
 			this.menu_GC_Collect.OwnerDraw = true;
 			this.menu_GC_Collect.Text = "GC.Collect";
 			this.menu_GC_Collect.Click += new System.EventHandler(this.menu_GC_Collect_Click);
@@ -595,7 +562,7 @@ namespace UMLDes {
 			this.toolBar1.images = this.toolbarImages;
 			this.toolBar1.Location = new System.Drawing.Point(0, 0);
 			this.toolBar1.Name = "toolBar1";
-			this.toolBar1.Size = new System.Drawing.Size(744, 24);
+			this.toolBar1.Size = new System.Drawing.Size(784, 24);
 			this.toolBar1.TabIndex = 10;
 			// 
 			// panel1
@@ -604,7 +571,7 @@ namespace UMLDes {
 			this.panel1.Dock = System.Windows.Forms.DockStyle.Left;
 			this.panel1.Location = new System.Drawing.Point(0, 24);
 			this.panel1.Name = "panel1";
-			this.panel1.Size = new System.Drawing.Size(216, 393);
+			this.panel1.Size = new System.Drawing.Size(216, 415);
 			this.panel1.TabIndex = 13;
 			// 
 			// ProjectTree
@@ -614,14 +581,14 @@ namespace UMLDes {
 			this.ProjectTree.Location = new System.Drawing.Point(0, 0);
 			this.ProjectTree.Name = "ProjectTree";
 			this.ProjectTree.SelectedImageIndex = -1;
-			this.ProjectTree.Size = new System.Drawing.Size(216, 393);
+			this.ProjectTree.Size = new System.Drawing.Size(216, 415);
 			this.ProjectTree.TabIndex = 2;
 			// 
 			// splitter1
 			// 
 			this.splitter1.Location = new System.Drawing.Point(216, 24);
 			this.splitter1.Name = "splitter1";
-			this.splitter1.Size = new System.Drawing.Size(3, 393);
+			this.splitter1.Size = new System.Drawing.Size(3, 415);
 			this.splitter1.TabIndex = 14;
 			this.splitter1.TabStop = false;
 			// 
@@ -633,26 +600,48 @@ namespace UMLDes {
 			this.ViewCtrl1.Font = new System.Drawing.Font("Arial", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((System.Byte)(204)));
 			this.ViewCtrl1.Location = new System.Drawing.Point(219, 24);
 			this.ViewCtrl1.Name = "ViewCtrl1";
-			this.ViewCtrl1.Size = new System.Drawing.Size(525, 393);
+			this.ViewCtrl1.Size = new System.Drawing.Size(565, 415);
 			this.ViewCtrl1.TabIndex = 15;
+			// 
+			// statusBar1
+			// 
+			this.statusBar1.Location = new System.Drawing.Point(0, 439);
+			this.statusBar1.Name = "statusBar1";
+			this.statusBar1.Panels.AddRange(new System.Windows.Forms.StatusBarPanel[] {
+																						  this.status_panel});
+			this.statusBar1.ShowPanels = true;
+			this.statusBar1.Size = new System.Drawing.Size(784, 18);
+			this.statusBar1.TabIndex = 1;
+			// 
+			// status_panel
+			// 
+			this.status_panel.AutoSize = System.Windows.Forms.StatusBarPanelAutoSize.Spring;
+			this.status_panel.Text = "Ready";
+			this.status_panel.ToolTipText = "Status";
+			this.status_panel.Width = 768;
 			// 
 			// MainWnd
 			// 
 			this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
-			this.ClientSize = new System.Drawing.Size(744, 417);
+			this.ClientSize = new System.Drawing.Size(784, 457);
 			this.Controls.Add(this.ViewCtrl1);
 			this.Controls.Add(this.splitter1);
 			this.Controls.Add(this.panel1);
 			this.Controls.Add(this.toolBar1);
+			this.Controls.Add(this.statusBar1);
+			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.Location = new System.Drawing.Point(0, 0);
 			this.Menu = this.mainMenu1;
 			this.Name = "MainWnd";
 			this.Text = "C# UML Designer";
 			this.panel1.ResumeLayout(false);
+			((System.ComponentModel.ISupportInitialize)(this.status_panel)).EndInit();
 			this.ResumeLayout(false);
 
 		}
 		#endregion
+
+		#region Main, SaveChanges, OnClosing
 		
 		[STAThread]
 		static void Main() {
@@ -686,6 +675,8 @@ namespace UMLDes {
 			base.OnClosing (e);
 		}
 
+		#endregion
+
 		#region Menu actions
 
 		private void menu_NewProject_Click(object sender, System.EventArgs e) {
@@ -711,26 +702,6 @@ namespace UMLDes {
 				TurnOnProject( q );
 		}
 		
-		TreeNode views = null;
-
-		internal void RefreshProjectTree( bool update_projects ) {
-
-			if( update_projects ) {
-				ProjectTree.Nodes.Clear();
-				foreach( TreeNode t in p.projects )
-					ProjectTree.Nodes.Add( t );
-				if( views == null )
-					views = new TreeNode( "Diagrams", 2, 2 );
-				ProjectTree.Nodes.Add( views );
-			}
-			views.Nodes.Clear();
-			foreach( GUI.View v in p.diagrams ) {
-				TreeNode view = new TreeNode( v.name, 2, 2 );
-				view.Tag = v;
-				views.Nodes.Add( view );
-			}
-		}
-
 		public void RefreshTitle() {
 			this.Text = "C# UML Designer: " + p.name + " [" + ViewCtrl1.Curr.name + "]";
 		}
@@ -745,14 +716,20 @@ namespace UMLDes {
 
 			this.p = p;
 			p.container = this;
-			RefreshProjectTree(true);
+			ProjectTree.NewSolution( p );
 			SelectView( (GUI.View)p.diagrams[0], true );
 			UpdateToolBar();
 		}
 
+		ArrayList view_toolbar_panels = null;
+
 		public void SelectView( GUI.View v, bool update ) {
 			ViewCtrl1.Curr = v;
 			if( update ) {
+				if( view_toolbar_panels != null )
+					foreach( FlatToolBarPanel panel in view_toolbar_panels )
+						toolBar1.RemovePanel( panel );
+				view_toolbar_panels = v.LoadToolbars();
 				RefreshTitle();
 				ViewCtrl1.Invalidate();
 			}
@@ -832,18 +809,20 @@ namespace UMLDes {
 			dragbox = Rectangle.Empty;
 			if( (e.Button & MouseButtons.Left) == MouseButtons.Left ) {
 				TreeNode node = (sender as TreeView).GetNodeAt( e.X, e.Y);
-				if( node != null && node.Tag != null ) {
+				if( node != null ) {
 
-					if( node.Tag is UMLDes.GUI.View ) {
+					object obj = ProjectTree.GetNodeObject( node );
+
+					if( obj is UMLDes.GUI.View ) {
 						if( e.Clicks == 2 ) {
-							UMLDes.GUI.View v = node.Tag as UMLDes.GUI.View;
+							UMLDes.GUI.View v = obj as UMLDes.GUI.View;
 							SelectView( v, true );
 						}
 
-					} else if( !(node.Tag is UmlDesignerSolution) ) {
+					} else if( !(obj is UmlDesignerSolution) ) {
 						Size dragSize = SystemInformation.DragSize;
-						dragbox = new Rectangle(new Point(e.X - (dragSize.Width /2), e.Y - (dragSize.Height /2)), dragSize);				
-						dragobject = node.Tag as UmlObject;
+						dragbox = new Rectangle(new Point(e.X - (dragSize.Width /2), e.Y - (dragSize.Height /2)), dragSize);
+						dragobject = obj as UmlObject;
 					}
 				}
 			}
@@ -851,7 +830,7 @@ namespace UMLDes {
 		
 		void TreeMouseMove(object sender, System.Windows.Forms.MouseEventArgs e) {
 			if( (e.Button & MouseButtons.Left) == MouseButtons.Left ) {
-				if( dragbox != Rectangle.Empty && !dragbox.Contains( e.X,e.Y) ) {
+				if( dragbox != Rectangle.Empty && !dragbox.Contains( e.X,e.Y) && dragobject != null ) {
 					ViewCtrl1.DragObject = dragobject;
 					DragDropEffects dropEffect = ((TreeView)sender).DoDragDrop( dragobject.Name, DragDropEffects.Copy );
 					///....
@@ -866,12 +845,14 @@ namespace UMLDes {
 		}
 
 		private void BeforeLabelEdit(object sender, NodeLabelEditEventArgs e) {
-			e.CancelEdit = !( e.Node.Tag != null && (e.Node.Tag is UMLDes.GUI.View ) );
+			object obj = ProjectTree.GetNodeObject( e.Node );
+			e.CancelEdit = !( obj != null && obj is UMLDes.GUI.View );
 		}
 
 		private void AfterLabelEdit(object sender, NodeLabelEditEventArgs e) {
-			if( e.Node.Tag is UMLDes.GUI.View ) {
-				UMLDes.GUI.View v = e.Node.Tag as UMLDes.GUI.View;
+			object obj = ProjectTree.GetNodeObject( e.Node );
+			if( obj != null && obj is UMLDes.GUI.View ) {
+				UMLDes.GUI.View v = obj as UMLDes.GUI.View;
 				if( e.Label != null )
 					v.name = e.Label;
 			}
@@ -900,5 +881,16 @@ namespace UMLDes {
 		}
 		#endregion
 
+		#region StatusBar related
+
+		internal void SetStatus( string text ) {
+			status_panel.Text = text;
+		}
+
+		internal void SetAdvise( string text ) {
+			//advise_panel.Text = text;
+		}
+
+		#endregion
 	}
 }

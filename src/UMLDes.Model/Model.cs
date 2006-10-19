@@ -25,6 +25,7 @@ namespace UMLDes.Model {
 		Destructor,
 
 		Parameter,
+		EnumNode
 	}
 
 	/// <summary>
@@ -223,7 +224,8 @@ namespace UMLDes.Model {
 		}
 
 		public override void Visit(UMLDes.Model.UmlObject.Visitor v, UmlObject parent) {
-			root.Visit( v, this );
+			if( root != null )
+				root.Visit( v, this );
 			v( this, parent );
 		}
 

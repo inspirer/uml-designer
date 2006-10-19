@@ -12,7 +12,8 @@ namespace UMLDes.GUI {
 	}
 
 	public enum GuiConnectionType {
-		Inheritance, Association, Aggregation, Using, n_ary
+		Inheritance, Association, Aggregation, Attachment,
+		Dependency, Composition, Realization
 	}
 
 	public enum GuiConnectionStyle {
@@ -45,6 +46,7 @@ namespace UMLDes.GUI {
 		[XmlAttribute] public GuiConnectionNavigation nav;
 		[XmlIgnore] bool created = false;
 		[XmlIgnore] public ConnectionState Style;
+		[XmlIgnore] public GuiBindedString conn_name, conn_stereo;
 
 		const int MINIMUM_DISTANCE = 10;
 
@@ -131,6 +133,8 @@ namespace UMLDes.GUI {
 		int transl_action_param;
 
 		public void translate_coords( ref int ux, ref float uy ){
+			if( ux == Int32.MaxValue )
+				return;
 			if( transl_action == Translation.AddPoint ) {
 				if( ux < 0 ) {
 					if( -ux-1 >= transl_action_param )
@@ -231,15 +235,21 @@ namespace UMLDes.GUI {
 		private void DrawSegmentedConnection( Graphics g, Rectangle r, int offx, int offy ) {
 			int x1 = first.x + r.X - offx, y1 = first.y + r.Y - offy;
 			int x2, y2;
-			Pen p = selected ? Pens.Blue : Pens.Black;
+			Pen color = selected ? Pens.Blue : Pens.Black, p = color;
 
-			if( type == GuiConnectionType.Using ) {
-				p = new Pen( p.Color );
-				p.DashStyle = DashStyle.Dash;
-				p.DashOffset = 0;
-				p.DashPattern = new float[] { 10, 5 };
-			} else 
-				g.SmoothingMode = SmoothingMode.HighQuality;
+			switch( type ) {
+				case GuiConnectionType.Attachment:
+				case GuiConnectionType.Dependency:
+				case GuiConnectionType.Realization:
+					p = new Pen( p.Color );
+					p.DashStyle = DashStyle.Dash;
+					p.DashOffset = 0;
+					p.DashPattern = new float[] { 10, 5 };
+					break;
+				default:
+					g.SmoothingMode = SmoothingMode.HighQuality;
+					break;
+			}
 
 			Point[] pnts = new Point[ipoints.Count];
 			for( int i = 0; i < ipoints.Count; i++ ) {
@@ -254,9 +264,10 @@ namespace UMLDes.GUI {
 
 			switch( type ) {
 				case GuiConnectionType.Aggregation:
+				case GuiConnectionType.Composition:
 					Geometry.point_rhomb_on_segment( out pnts, x1, y1, x2, y2, 7, 5 );
-					g.FillPolygon( Brushes.White, pnts );
-					g.DrawPolygon( Pens.Black, pnts );
+					g.FillPolygon( type == GuiConnectionType.Composition ? Brushes.Black : Brushes.White, pnts );
+					g.DrawPolygon( color, pnts );
 					if( nav == GuiConnectionNavigation.Left ) {
 						x1 = pnts[2].X; y1 = pnts[2].Y;
 						goto case GuiConnectionType.Association;
@@ -266,27 +277,37 @@ namespace UMLDes.GUI {
 				case GuiConnectionType.Association:
 					if( nav == GuiConnectionNavigation.Left ) {
 						Geometry.point_triangle_on_segment( out pnts, x1, y1, x2, y2, 7, 5 );
-						g.DrawLines( Pens.Black, pnts );
+						g.DrawLines( color, pnts );
 					} else if( nav == GuiConnectionNavigation.Right ) {
 						pnt = (GuiPoint)ipoints[ipoints.Count-2];
 						x1 = second.x + r.X - offx; y1 = second.y + r.Y - offy;
 						x2 = pnt.x + r.X - offx; y2 = pnt.y + r.Y - offy;
 						Geometry.point_triangle_on_segment( out pnts, x1, y1, x2, y2, 7, 5 );
-						g.DrawLines( Pens.Black, pnts );
+						g.DrawLines( color, pnts );
 					}
 					break;
 				case GuiConnectionType.Inheritance:
+				case GuiConnectionType.Realization:
 					Geometry.point_triangle_on_segment( out pnts, x1, y1, x2, y2, 10, 7 );
 					g.FillPolygon( Brushes.White, pnts );
-					g.DrawPolygon( Pens.Black, pnts );
+					g.DrawPolygon( color, pnts );
 					break;
-				case GuiConnectionType.Using:
+				case GuiConnectionType.Dependency:
+					Geometry.point_triangle_on_segment( out pnts, x1, y1, x2, y2, 7, 5 );
+					g.DrawLines( color, pnts );
+					break;
+				case GuiConnectionType.Attachment:
 					break;
 			}
 			g.SmoothingMode = SmoothingMode.Default;
 
-			if( type == GuiConnectionType.Using )
-				p.Dispose();
+			switch( type ) {
+				case GuiConnectionType.Attachment:
+				case GuiConnectionType.Dependency:
+				case GuiConnectionType.Realization:
+					p.Dispose();
+					break;
+			}
 		}
 
 		private void DrawBesierConnection( Graphics g, Rectangle r, int offx, int offy ) {
@@ -337,6 +358,7 @@ namespace UMLDes.GUI {
 					Region r = new Region( p );
 					parent.cview.InvalidateRegion( r );
 					parent.cview.InvalidatePage( new Rectangle(first.x - decor_size, first.y - decor_size, 2*decor_size, 2*decor_size ) );
+					parent.cview.InvalidatePage( new Rectangle(second.x - decor_size, second.y - decor_size, 2*decor_size, 2*decor_size ) );
 					break;
 			}
 		}
@@ -365,6 +387,22 @@ namespace UMLDes.GUI {
 			Style.DoCreationFixup(false);
 		}
 
+		private GuiBindedString create_label( string label, int ux, float uy, Geometry.Direction dir, int offset, bool hidden ) {
+			GuiBindedString bs = new GuiBindedString( label, this, 0, -offset, ux, uy, hidden );
+
+			switch( dir ) {
+				case Geometry.Direction.West:
+					bs.pos_x -= bs.place.Width;
+					bs.RecalculatePosition();
+					break;
+				case Geometry.Direction.North:
+					bs.pos_y -= bs.place.Height;
+					bs.RecalculatePosition();
+					break;
+			}
+			return bs;
+		}
+
 		// registers connection in StaticView structures:
 		public void ConnectionCreated( StaticView parent_view ) {
 
@@ -374,13 +412,17 @@ namespace UMLDes.GUI {
 			//  2. create ID for connection
 			id = parent_view.RegisterItemID( type.ToString(), this );
 			//  3. create default roles
-			first.role = new GuiBindedString( "Left", this, 20, 20, -1, 0f );
-			second.role = new GuiBindedString( "Right", this, 20, 20, -second.number_in_conn-1, 0f );
+			first.role = create_label( "Left", -1, 0f, first.hyphen_dir, 0, true );
+			second.role = create_label( "Right", -second.number_in_conn-1, 0f, second.hyphen_dir, 0, true );
+			conn_name = create_label( "Name", Int32.MaxValue, 0f, Geometry.Direction.Null, 0, true );
+			conn_stereo = create_label( "\x00ABUsage\xBB", Int32.MaxValue, 0f, Geometry.Direction.Null, 15, true );
 			//  4. register children, make them drawable and serializable
 			add_child( first, "LeftPoint" );
 			add_child( second, "RightPoint" );
 			add_child( first.role, "Role 1" );
 			add_child( second.role, "Role 2" );
+			add_child( conn_name, "Name" );
+			add_child( conn_stereo, "Stereotype" );
 
 			for( int i = 1; i < ipoints.Count - 1; i++ )
 				add_child( ipoints[i] as GuiBinded, null );
@@ -411,6 +453,8 @@ namespace UMLDes.GUI {
 			second.UpdatePosition( true );
 			first.role = find_child( "Role 1" ) as GuiBindedString;
 			second.role = find_child( "Role 2" ) as GuiBindedString;
+			conn_name = find_child( "Name" ) as GuiBindedString;
+			conn_stereo = find_child( "Stereotype" ) as GuiBindedString;
 			ipoints.Add( first );
 			for( int i = 1; i < loadtime_iterm_count - 1; i++ )
 				ipoints.Add( find_child( "Point #" + i ) );
@@ -490,6 +534,16 @@ namespace UMLDes.GUI {
 
 		public void coord_getxy(int ux, float uy, out int x, out int y) {
 			x = y = -1;
+
+			// specific UC (MaxValue,0) means center of connection
+			if( ux == Int32.MaxValue ) {
+				if( (ipoints.Count%2) == 0 ) {
+					ux = ipoints.Count/2-1;
+					uy = .5f;
+				} else {
+					ux = -ipoints.Count/2-1;
+				}
+			}
 
 			if( ux < 0 ) {
 				int n = -ux-1;
@@ -578,17 +632,26 @@ namespace UMLDes.GUI {
 			ObjectState before = GetState();
 			this.Invalidate();
 			switch( (ToolBarIcons)(o as FlatMenuItem).ImageIndex ) {
+				case ToolBarIcons.conn_inher:	// Inheritance
+					type = GuiConnectionType.Inheritance;
+					break;
 				case ToolBarIcons.conn_assoc:	// Association
 					type = GuiConnectionType.Association;
 					break;
 				case ToolBarIcons.conn_aggregation: // Aggregation
 					type = GuiConnectionType.Aggregation;
 					break;
-				case ToolBarIcons.conn_inher:	// Inheritance
-					type = GuiConnectionType.Inheritance;
+				case ToolBarIcons.conn_composition:	// Composition
+					type = GuiConnectionType.Composition;
 					break;
-				case ToolBarIcons.None:	// Usage
-					type = GuiConnectionType.Using;
+				case ToolBarIcons.conn_attachm:	// Attachment
+					type = GuiConnectionType.Attachment;
+					break;
+				case ToolBarIcons.conn_realiz:	// Realization
+					type = GuiConnectionType.Realization;
+					break;
+				case ToolBarIcons.conn_dependence:	// Dependency
+					type = GuiConnectionType.Dependency;
 					break;
 			}
 			this.Invalidate();
@@ -613,15 +676,27 @@ namespace UMLDes.GUI {
 			parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
 		}
 
-		private void AddItem( FlatMenuItem fmi, string text, ToolBarIcons icon, bool Checked, EventHandler click_handler ) {
-			FlatMenuItem curr = new FlatMenuItem( text, icon != ToolBarIcons.None ? parent.proj.icon_list : null, (int)icon, Checked );
-			if( click_handler != null )
-				curr.Click += click_handler;
-			else
-				curr.Enabled = false;
-			fmi.MenuItems.Add( curr );
+		public void DisplayOptions( object o, EventArgs ev ) { 
+			switch( (o as FlatMenuItem).Index ) {
+				case 0: // Show roles
+					ShowRoles = !ShowRoles;
+					break;
+				case 1: // Show connection name
+					conn_name.Visible = !conn_name.Visible;
+					break;
+				case 2: // Show stereotype
+					conn_stereo.Visible = !conn_stereo.Visible;
+					break;
+
+				case 4: // show all
+					conn_stereo.Visible = conn_name.Visible = ShowRoles = true;
+					break;
+				case 5: // hide all
+					conn_stereo.Visible = conn_name.Visible = ShowRoles = false;
+					break;
+			}
 		}
-                      
+
 		public void AddMenuItems( System.Windows.Forms.ContextMenu m, int x, int y ) {
 
 			FlatMenuItem curr;
@@ -639,10 +714,13 @@ namespace UMLDes.GUI {
 			// Type
 			evh = new EventHandler( ChangeTypeClick );
 			curr = new FlatMenuItem( "Type", null, 0, false );
+			AddItem( curr, "Inheritance", ToolBarIcons.conn_inher, this.type == GuiConnectionType.Inheritance, evh );
 			AddItem( curr, "Association", ToolBarIcons.conn_assoc, this.type == GuiConnectionType.Association, evh );
 			AddItem( curr, "Aggregation", ToolBarIcons.conn_aggregation, this.type == GuiConnectionType.Aggregation, evh );
-			AddItem( curr, "Inheritance", ToolBarIcons.conn_inher, this.type == GuiConnectionType.Inheritance, evh );
-			AddItem( curr, "Usage", ToolBarIcons.None, this.type == GuiConnectionType.Using, evh );
+			AddItem( curr, "Composition", ToolBarIcons.conn_composition, this.type == GuiConnectionType.Composition, evh );
+			AddItem( curr, "Attachment", ToolBarIcons.conn_attachm, this.type == GuiConnectionType.Attachment, evh );
+			AddItem( curr, "Dependancy/Usage", ToolBarIcons.conn_dependence, this.type == GuiConnectionType.Dependency, evh );
+			AddItem( curr, "Realization", ToolBarIcons.conn_realiz, this.type == GuiConnectionType.Realization, evh );
 			m.MenuItems.Add( curr );
 
 			// Navigation
@@ -651,8 +729,28 @@ namespace UMLDes.GUI {
 			AddItem( curr, "None", ToolBarIcons.None, this.nav == GuiConnectionNavigation.None, evh );
 			AddItem( curr, "Left", ToolBarIcons.None, this.nav == GuiConnectionNavigation.Left, evh );
 			AddItem( curr, "Right", ToolBarIcons.None, this.nav == GuiConnectionNavigation.Right, evh );
-			curr.Enabled = ( this.type == GuiConnectionType.Association || this.type == GuiConnectionType.Aggregation );
+			curr.Enabled = ( this.type == GuiConnectionType.Association || this.type == GuiConnectionType.Aggregation || this.type == GuiConnectionType.Composition );
 			m.MenuItems.Add( curr );
+
+			// Display Options
+			evh = new EventHandler( DisplayOptions );
+			curr = new FlatMenuItem( "Display &Options...", null, 0, false );
+			AddItem( curr, "Show roles", ToolBarIcons.None, ShowRoles, evh );
+			AddItem( curr, "Show connection name", ToolBarIcons.None, conn_name.Visible, evh );
+			AddItem( curr, "Show stereotype", ToolBarIcons.None, conn_stereo.Visible, evh );
+			AddItem( curr, "-", ToolBarIcons.None, false, null );
+			AddItem( curr, "Show all", ToolBarIcons.None, false, evh );
+			AddItem( curr, "Hide all", ToolBarIcons.None, false, evh );
+			m.MenuItems.Add( curr );
+		}
+
+		internal bool ShowRoles {
+			get {
+                return !first.role.hidden && !second.role.hidden;
+			}
+			set {
+				first.role.Visible = second.role.Visible = value;
+			}
 		}
 
 		#endregion

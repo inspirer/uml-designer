@@ -18,7 +18,7 @@ namespace UMLDes.Model {
 			UmlModel m = ModelBuilder.CreateEmptyModel();
 			foreach( string s in projs ) 
 				ModelBuilder.AddProject( m, s );
-			ModelBuilder.UpdateModel( m, out errors );
+			ModelBuilder.UpdateModel( m, out errors, null );
 			if( errors != null ) {
 				Console.WriteLine( out_file );
 				foreach( string err in errors )
@@ -61,7 +61,10 @@ namespace UMLDes.Model {
 													@"D:\projects\CDS\UMLDes.Model.CSharp\UMLDes.Model.CSharp.csproj",
 													@"D:\projects\CDS\UMLDes.Model\UMLDes.Model.csproj",
 													@"D:\projects\CDS\UmlDes.Gui\UmlDes.Gui.csproj",
-													@"D:\projects\CDS\UMLDes.Model.Tests\UMLDes.Model.Tests.csproj"
+													@"D:\projects\CDS\UMLDes.Model.Tests\UMLDes.Model.Tests.csproj",
+													@"D:\projects\CDS\UMLDes.Controls\UMLDes.Controls.csproj",
+													@"D:\projects\CDS\UMLDes.StaticView\UMLDes.StaticView.csproj",
+													@"D:\projects\CDS\UMLDes.View\UMLDes.View.csproj"
 												} );
 
 			try_load( base_dir + "test_lib.xml", new string[] { 

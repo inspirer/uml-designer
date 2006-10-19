@@ -35,13 +35,19 @@ namespace UMLDes.Model.MSIL {
 			return proj;
 		}
 
+		public static void ClearDeleted( UmlObject v, UmlObject parent) {
+			v.Deleted = false;
+		}
+
 		public static bool UpdateProject( UmlProject proj ) {
 			string dllname = proj.filename;
 
 			if( !File.Exists( dllname ) )
 				return false;
-			if( proj.write_time.Equals( File.GetLastWriteTime( dllname ) ) )
+			if( proj.write_time.Equals( File.GetLastWriteTime( dllname ) ) ) {
+				proj.Visit( new UmlObject.Visitor( ClearDeleted ), null );
 				return true;
+			}
 			System.Reflection.Assembly assem = System.Reflection.Assembly.LoadFile( dllname );
 			if( assem == null )
 				return false;

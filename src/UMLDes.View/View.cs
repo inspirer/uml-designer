@@ -11,7 +11,7 @@ namespace UMLDes.GUI {
 		New, 
 		Open, 
 		Save, 
-		Saveall, 
+		Saveas, 
 		cut, 
 		copy, 
 		paste, 
@@ -38,15 +38,26 @@ namespace UMLDes.GUI {
 		memo,
 		component,
 		actor,
+		show_qual,
+		oper_signature,
+		add_related,
+		show_attrs,
+		show_opers,
+		show_properties,
+		constraint,
+		conn_dependence,
+		conn_composition,
+		conn_realiz,
+		conn_attachm,
 		None
 	}
 
 	public interface ISolution {
 		UmlModel model { get; }
 		ImageList icon_list { get; }
+		UMLDes.Controls.FlatToolBar tool_bar { get; }
 
 		void UpdateToolBar();
-		void SetDefaultDrawingMode();
 	}
 
 	public abstract class View {
@@ -65,6 +76,8 @@ namespace UMLDes.GUI {
 		public abstract void DoOperation( EditOperation op );
 		public abstract bool IfEnabled( EditOperation op );
 		public abstract bool IfContainsSmth( Rectangle r );
+		public abstract void RefreshContent();
+		public abstract ArrayList LoadToolbars();
 
 		[XmlIgnore] public abstract Undo undo { get; }
 	}

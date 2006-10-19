@@ -1,0 +1,15 @@
+TODO
+	создание наследования при помещении класса на диаграмму
+	подписи к связям, возможность убрать, по умолчанию нет для attachement
+	Flat Toolbar: checked, impl: show_qual & operation signature
+	show in tree
+	packages, constraints
+	GuiDelegate, GuiNamespace
+	refresh progress bar
+	fix: connections while move
+	fix: quadric к углу Memo
+	comments, saving links in comments
+
+optional
+	fix множественного таскания
+	actor

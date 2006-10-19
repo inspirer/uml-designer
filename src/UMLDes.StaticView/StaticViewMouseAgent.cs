@@ -7,6 +7,10 @@ using UMLDes.Model;
 
 namespace UMLDes.GUI {
 
+	internal enum MouseOperation {
+		Select, DrawConnection, DrawComment
+	};
+
 	public class StaticViewMouseAgent : MouseAgent {
 		const int SCROLL_VALUE = 25;	/* pixels */
 		const int SCROLL_TIMEOUT = 50;	/* msecs */
@@ -15,9 +19,9 @@ namespace UMLDes.GUI {
 			None, Move, Drag, Select, Scroll, CreateConnection
 		}			
 
-		enum CurrentOperation {
-			Select, DrawConnection, DrawComment
-		};
+		internal MouseOperation current_operation;
+		internal GuiConnectionStyle conn_style = GuiConnectionStyle.Quadric;
+		internal GuiConnectionType conn_type;
 
 		StaticView parent;
 		MouseAction action;
@@ -40,11 +44,15 @@ namespace UMLDes.GUI {
 
 			dropobj = elem;
 			dropitem = GuiElementFactory.CreateElement( elem );
-			System.Diagnostics.Debug.Assert( dropitem != null && dropitem is IMoveable && dropitem is IRemoveable, "wrong element created" );
-			dropitem.parent = parent;
-			if( dropitem is INeedRefresh )
-				parent.RefreshObject( (INeedRefresh)dropitem );
-			action = MouseAction.Drag;
+
+			if( dropitem != null ) {
+				System.Diagnostics.Debug.Assert( dropitem is IMoveable && dropitem is IRemoveable, "wrong element created" );
+				dropitem.parent = parent;
+				if( dropitem is INeedRefresh )
+					parent.RefreshObject( (INeedRefresh)dropitem );
+				action = MouseAction.Drag;
+			} else
+				action = MouseAction.None;
 		}
 
 		public override void StopDrag() {
@@ -55,23 +63,11 @@ namespace UMLDes.GUI {
 			action = MouseAction.None;
 		}
 
-		private void NewRelation( GuiClass c1, GuiClass c2, GuiConnectionType t ) {
-			GuiConnection c = new GuiConnection( new GuiConnectionPoint( c1, 1, .5f, 0 ), new GuiConnectionPoint( c2, 3, .5f, 1 ), t, parent, (GuiConnectionStyle)current_param2 );
-			c.first.UpdatePosition( true );
-			c.second.UpdatePosition( true );
-			c.DoCreationFixup();
-			c.ConnectionCreated( parent );
-			c.Invalidate();
-			parent.Undo.Push( new CreateOperation( c ), false );
-		}
-
 		public override void Drop( ) {
 			if( dropitem == null )
 				throw new ArgumentException( "have nothing to drop" );
 
-			dropitem.id = parent.RegisterItemID( UmlModel.GetUniversal(dropobj), dropitem );
-			dropitem.Invalidate();
-			parent.Undo.Push( new CreateOperation( (IRemoveable)dropitem ), false );
+			parent.AddObject( dropitem, UmlModel.GetUniversal(dropobj) );
 			action = MouseAction.None;
 
 			// insert Inheritance
@@ -138,7 +134,7 @@ namespace UMLDes.GUI {
 
 			if( b == MouseButtons.Left ) {
 
-				if( current_operation == (int)MouseOp.DrawMemo ) {
+				if( current_operation == MouseOperation.DrawComment ) {
 
 					GuiMemo m = GuiElementFactory.CreateMemo( parent, x, y );
 
@@ -148,7 +144,7 @@ namespace UMLDes.GUI {
 					moveuy = 0;
 					action = MouseAction.Move;
 
-				} else if( (modif & Keys.Control) == Keys.Control || current_operation == (int)MouseOp.DrawConnection ) {
+				} else if( (modif & Keys.Control) == Keys.Control || current_operation == MouseOperation.DrawConnection ) {
 
 					conn_item = parent.FindItem( x, y, out moveux, out moveuy, true ) as IAcceptConnection;
 					if( conn_item == null ) {
@@ -163,7 +159,7 @@ namespace UMLDes.GUI {
 					conn_item.coord_nearest( x, y, out ux, out uy );
 					action = MouseAction.CreateConnection;
 
-					conn = new GuiConnection( new GuiConnectionPoint( conn_item, ux, uy, 0 ), new GuiConnectionPoint( x, y, 1 ), (GuiConnectionType)current_param1, parent, (GuiConnectionStyle)current_param2 );
+					conn = new GuiConnection( new GuiConnectionPoint( conn_item, ux, uy, 0 ), new GuiConnectionPoint( x, y, 1 ), conn_type, parent, conn_style );
 					conn.first.item.coord_nearest( x, y, out conn.first.ux, out conn.first.uy );
 					conn.first.UpdatePosition( true );
 					conn.DoCreationFixup();
@@ -236,7 +232,7 @@ namespace UMLDes.GUI {
 
 			} else if( b == MouseButtons.Right ) {
 
-				ISelectable obj = parent.FindItem( x, y, false ) as ISelectable;
+				ISelectable obj = parent.FindItem( x, y, true ) as ISelectable;
 				if( obj != null ) {
 
 					if( obj is IDropMenu ) {
@@ -340,7 +336,7 @@ namespace UMLDes.GUI {
 				StopScrolling();
 			}
 
-			parent.proj.SetDefaultDrawingMode();
+			parent.SetDefaultDrawingMode();
 			original_selected = null;
 
 			switch( action ) {

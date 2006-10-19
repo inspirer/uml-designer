@@ -11,25 +11,30 @@ namespace UMLDes.GUI {
 	class GuiElementFactory {
 
 		public static GuiItem CreateElement( UmlObject obj ) {
-			return GuiClass.fromUML( obj as UmlClass );
+
+			if( obj is UmlClass )
+				return GuiClass.fromUML( obj as UmlClass );
+			else if( obj is UmlEnum )
+				return GuiEnum.fromUML( obj as UmlEnum );
+			else
+				return null;
 		}
 
-		private static GuiClass CreateClass( UmlClass cl ) {
-			return null;
+		public static GuiClass CreateClass( StaticView parent, int x, int y, UmlClass cl ) {
+			GuiClass c = GuiClass.fromUML(cl);
+			c.X = x;
+			c.Y = y;
+			parent.AddObject( c, UmlModel.GetUniversal(cl) );
+			return c;
 		}
 
 		public static GuiMemo CreateMemo( StaticView parent, int x, int y ) {
 			GuiMemo m = new GuiMemo();
-			m.parent = parent;
-			m.id = parent.RegisterItemID( "memo", m );
 			m.X = x;
 			m.Y = y;
-			m.PostLoad();
-			m.Invalidate();
-			parent.Undo.Push( new CreateOperation( (IRemoveable)m ), false );
+			parent.AddObject( m, "memo" );
 			return m;
 		}
-
 	}
 
 

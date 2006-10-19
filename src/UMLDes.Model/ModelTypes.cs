@@ -72,6 +72,7 @@ namespace UMLDes.Model {
 		public ArrayList Members;
 
 		[XmlIgnore] public ArrayList BaseList;
+		[XmlElement("base",typeof(string))] public ArrayList BaseObjects;
 
 		ArrayList UmlTypeHolder.Types { get { if( Types == null ) Types = new ArrayList(); return Types; } }
 
@@ -95,21 +96,6 @@ namespace UMLDes.Model {
 					o.Visit( v, this );
 			v( this, parent );
 		}
-		#endregion
-
-		#region Serialization
-
-		[XmlElement( "Base", typeof(string) )]
-		public ArrayList _ser_BaseList {
-			get {
-				ArrayList l = new ArrayList();
-				if( BaseList != null )
-					foreach( UmlClass t in BaseList )
-                        l.Add( UmlModel.GetUniversal( t ) );
-				return l;
-			}
-		}
-
 		#endregion
 	}
 
@@ -144,6 +130,7 @@ namespace UMLDes.Model {
 	/// </summary>
 	public class UmlEnum : UmlType {
 
+		[XmlElement("field", typeof(UmlEnumField))]
 		public ArrayList Members;
 
 		#region UmlObject

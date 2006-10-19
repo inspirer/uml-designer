@@ -9,128 +9,60 @@ using UMLDes.Controls;
 namespace UMLDes.GUI {
 
 	/// <summary>
-	/// Represents a member of the classificator
-	/// </summary>
-	public class GuiMember {
-
-		public UmlMember st;
-		public SizeF size;
-		public int y_offset;
-		public Rectangle area;
-		public FontStyle font {
-			get { return (st.IsAbstract ? FontStyle.Italic : 0) | ( st.IsStatic ? FontStyle.Underline : 0); }
-		}
-
-		public GuiMember() {
-		}
-
-		public static GuiMember fromUML( UmlMember st ) {
-			GuiMember m = new GuiMember();
-			m.st = st;
-			return m;
-		}
-	}
-
-	public class GuiSection {
-		public UmlSection st;
-		public ArrayList members = new ArrayList();
-		public bool Hidden;
-
-		public static GuiSection fromUML( UmlSection st ) {
-            GuiSection s = new GuiSection();
-			s.st = st;
-			s.members = new ArrayList();
-			foreach( UmlMember m in st.members )
-				s.members.Add( GuiMember.fromUML( m ) );
-			return s;
-		}
-	}
-
-	/// <summary>
 	/// UML representation of class (classificator)
 	/// </summary>
-	public class GuiClass : GuiPolygonItem, IStateObject, IDropMenu {
+	public class GuiClass : GuiRectangle, IStateObject, IDropMenu {
 
-		public bool show_members = true, show_vars = true;
+		[XmlAttribute] public bool show_members = true, show_vars = true, show_properties = true;
+		[XmlAttribute] public bool show_full_qual = false, show_method_signatures = false;
 
-		[XmlIgnore] public ArrayList sections = new ArrayList();
 		[XmlIgnore] public UmlClass st;
 
 		public GuiClass() {
 			parent = null;
 		}
 
-		#region Paint
+		#region Content
 
-		public const int padding = 10, line_space = 2, vpadding = 6;
-		[XmlIgnore] SizeF name_size, stereo_size;
+		protected override void fillContent(ArrayList l) {
 
-		[XmlIgnore] public FontStyle font {
-			get { return (st.IsAbstract ? FontStyle.Italic : 0); }
-		}
+			string name = show_full_qual || st == null ? UmlModel.LongTypeName2Short(this.name) : st.Name;
 
-		protected override Point[] GetPoints() {
-			return new Point[] { new Point(X,Y), new Point(X,Y+Height), new Point(X+Width,Y+Height), new Point(X+Width,Y) };
-		}
+			if( st == null || st.Deleted ) {
+				l.Add( new GuiString( FontStyle.Regular, FontTypes.DEFAULT, true, "\x00ABdeleted\xBB" ) );
+				l.Add( new GuiString( (st != null && st.IsAbstract ? FontStyle.Italic : 0) | FontStyle.Bold, FontTypes.DEFAULT, true, name ) );
+				return;
+			} else if( st.Kind == UmlKind.Interface )
+				l.Add( new GuiString( FontStyle.Regular, FontTypes.DEFAULT, true, "\x00ABinterface\xBB" ) );
+			else if( st.Kind == UmlKind.Struct )
+				l.Add( new GuiString( FontStyle.Regular, FontTypes.DEFAULT, true, "\x00ABstruct\xBB" ) );
 
+			l.Add( new GuiString( (st != null && st.IsAbstract ? FontStyle.Italic : 0) | FontStyle.Bold, FontTypes.DEFAULT, true, name ) );
 
-		/// <summary>
-		/// Calculates width and height of object
-		/// </summary>
-		/// <param name="g">graphics object for measurements</param>
-		public override void RefreshView( Graphics g ) {
-			int width = 50, height = 0;
-
-			name_size = g.MeasureString( name, parent.cview.GetFont(FontTypes.DEFAULT,FontStyle.Bold|this.font) );
-			width = Math.Max( (int)name_size.Width + 2*padding, width );
-			height = (int)name_size.Height + 2*vpadding;
-
-			if( st.Stereotype != null ) {
-				stereo_size = g.MeasureString( st.Stereotype, parent.cview.Font );
-				width = Math.Max( (int)stereo_size.Width + 2*padding, width );
-				height += (int)stereo_size.Height + line_space;
-			} else
-				stereo_size = SizeF.Empty;
-
-			foreach( GuiSection sect in sections )
-				if( !sect.Hidden ) {
-					height += 2*vpadding;
-
-					foreach( GuiMember m in sect.members ) {
-						m.size = g.MeasureString( m.st.AsUml, parent.cview.GetFont(FontTypes.DEFAULT,m.font) );
-						width = Math.Max( (int)m.size.Width + 2*padding, width );
-						height += (int)m.size.Height + line_space;
-					}
-				}
-
-			Width = width;
-			Height = height;
-		}
-
-		public override void Paint( Graphics g, int x, int y ) {
-			int textdx, curr_y = y + vpadding;
-
-			if( st.Stereotype != null ) {
-				textdx = ( Width - (int)stereo_size.Width ) / 2;
-				g.DrawString( st.Stereotype, parent.cview.Font, Brushes.Black, x + textdx, curr_y );
-				curr_y += (int)stereo_size.Height + line_space;
+			if( show_vars && st.Kind != UmlKind.Interface ) {
+				l.Add( new GuiString() );
+				if( st.Members != null )
+					foreach( UmlMember m in st.Members )
+						if( m.MemberKind == UmlMemberKind.Attributes )
+							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
 			}
 
-			textdx = ( Width - (int)name_size.Width ) / 2;
-			g.DrawString( name, parent.cview.GetFont(FontTypes.DEFAULT,FontStyle.Bold|this.font), Brushes.Black, x + textdx, curr_y );
-			curr_y += (int)name_size.Height;
+			if( show_members ) {
+				l.Add( new GuiString() );
+				if( st.Members != null )
+					foreach( UmlMember m in st.Members )
+						if( m.MemberKind == UmlMemberKind.Operations )
+							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
+			}
 
-			foreach( GuiSection sect in sections )
-				if( !sect.Hidden ) {
-					curr_y += vpadding;
-					g.DrawLine( Pens.Black, x, curr_y, x + Width - 1, curr_y );
-					curr_y += vpadding;
-					foreach( GuiMember m in sect.members ) {
-						g.DrawString( m.st.AsUml, parent.cview.GetFont(FontTypes.DEFAULT,m.font), Brushes.Black, x + padding, curr_y );
-						m.y_offset = curr_y;
-						curr_y += (int)m.size.Height + line_space;
-					}
-				}
+			if( show_properties ) {
+				l.Add( new GuiString() );
+				if( st.Members != null )
+					foreach( UmlMember m in st.Members )
+						if( m.MemberKind == UmlMemberKind.Properties )
+							l.Add( new GuiString( (m.IsAbstract ? FontStyle.Italic : 0) | ( m.IsStatic ? FontStyle.Underline : 0), FontTypes.DEFAULT, false, m.AsUml(show_method_signatures) ) );
+			}
+
 		}
 
 		#endregion
@@ -141,21 +73,12 @@ namespace UMLDes.GUI {
 			GuiClass s = new GuiClass();
 			s.name = st.FullQualName;
 			s.st = st;
-			s.sections.Add( GuiSection.fromUML( new UmlSection( st, UmlMemberKind.Attributes ) ) );
-			s.sections.Add( GuiSection.fromUML( new UmlSection( st, UmlMemberKind.Operations ) ) );
-			s.sections.Add( GuiSection.fromUML( new UmlSection( st, UmlMemberKind.Properties ) ) );
+			s.Created();
 			return s;
 		}
 
 		public override void PostLoad() {
-			st = (UmlClass)parent.proj.model.GetObject( name );
-			sections.Add( GuiSection.fromUML( new UmlSection( st, UmlMemberKind.Attributes ) ) );
-			sections.Add( GuiSection.fromUML( new UmlSection( st, UmlMemberKind.Operations ) ) );
-			sections.Add( GuiSection.fromUML( new UmlSection( st, UmlMemberKind.Properties ) ) );
-
-			parent.RefreshObject( this );
-			setup_edges();
-
+			st = parent.proj.model.GetObject( name ) as UmlClass;
 			base.PostLoad();
 		}
 
@@ -165,6 +88,7 @@ namespace UMLDes.GUI {
 
 		class State : ObjectState {
 			public int x, y;
+			public bool b1, b2, b3, b4, b5;
 		}
 
 		public void Apply(ObjectState v) {
@@ -172,8 +96,12 @@ namespace UMLDes.GUI {
 			Invalidate();
 			X = t.x;
 			Y = t.y;
-			// TODO
-			setup_edges();
+			show_members = t.b1;
+			show_vars = t.b2;
+			show_properties = t.b3;
+			show_full_qual = t.b4;
+			show_method_signatures = t.b5;
+			RefreshContent();
 			Invalidate();
 		}
 
@@ -181,6 +109,11 @@ namespace UMLDes.GUI {
 			State t = new State();
 			t.x = X;
 			t.y = Y;
+			t.b1 = show_members;
+			t.b2 = show_vars;
+			t.b3 = show_properties;
+			t.b4 = show_full_qual;
+			t.b5 = show_method_signatures;
 			return t;
 		}
 
@@ -189,6 +122,7 @@ namespace UMLDes.GUI {
 		#region Menu
 
 		public void DisplayOptions( object o, EventArgs ev ) { 
+			ObjectState before = GetState();
 			switch( (o as FlatMenuItem).Index ) {
 				case 0: // Attributes
 					show_vars = !show_vars;
@@ -196,23 +130,85 @@ namespace UMLDes.GUI {
 				case 1: // Operations
 					show_members = !show_members;
 					break;
+				case 2: // Properties
+					show_properties = !show_properties;
+					break;
+				case 3: // full title
+					show_full_qual = !show_full_qual;
+					break;
+				case 4:	// method signatures
+					show_method_signatures = !show_method_signatures;
+					break;
 				default:
 					return;
 			}
-			StateChanged();
+			RefreshContent();
+			parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
+		}
+
+		private int x_coord_counter;
+		private bool ancest;
+
+		public void ImportClass( UmlClass cl ) {
+            GuiClass gc = GuiElementFactory.CreateClass( parent, x_coord_counter, ancest ? Y - 100 : Y + Height + 100, cl );
+			x_coord_counter += 20 + gc.Width;
+		}
+
+		public void VisitClassAndImport( UmlObject v, UmlObject parent ) {
+			if( v.Kind == UmlKind.Class || v.Kind == UmlKind.Interface ) {
+				if( ((UmlClass)v).BaseObjects != null )
+					foreach( string s in ((UmlClass)v).BaseObjects )
+						if( s.Equals( name ) )
+							ImportClass( (UmlClass)v );
+			}
+		}
+
+		public void Import( object o, EventArgs ev ) {
+			if( st == null )
+				return;
+			switch( (o as FlatMenuItem).Index ) {
+				case 0: // ancestor & interfaces
+					x_coord_counter = X;
+					ancest = true;
+					if( st.BaseObjects != null )
+						foreach( string s in st.BaseObjects ) {
+							UmlClass imp_cl = parent.proj.model.GetObject( s ) as UmlClass;
+							if( imp_cl != null )
+								ImportClass( imp_cl );
+						}
+					break;
+				case 1: // successors
+					ancest = false;
+					x_coord_counter = X;
+					parent.proj.model.Visit( new UmlObject.Visitor( VisitClassAndImport ), null );
+					break;
+				default:
+					return;
+			}
 		}
 
 		public void AddMenuItems( System.Windows.Forms.ContextMenu m, int x, int y ) {
-			// Diplay Options
-			FlatMenuItem dispopt = new FlatMenuItem( "Display &Options...", null, 0, false );
-			EventHandler hdl = new EventHandler( DisplayOptions );
-			FlatMenuItem mi = new FlatMenuItem( "&Attributes", null, 0, show_vars );
-			mi.Click += hdl;
-			dispopt.MenuItems.Add( mi );
-			mi = new FlatMenuItem( "O&perations", null, 0, show_members );
-			mi.Click += hdl;
-			dispopt.MenuItems.Add( mi );
-			m.MenuItems.Add( dispopt );
+
+			FlatMenuItem curr;
+			EventHandler evh;
+
+			// Display Options
+			evh = new EventHandler( DisplayOptions );
+			curr = new FlatMenuItem( "Display &Options...", null, 0, false );
+			AddItem( curr, "&Attributes", ToolBarIcons.show_attrs, show_vars, evh );
+			AddItem( curr, "&Operations", ToolBarIcons.show_opers, show_members, evh );
+			AddItem( curr, "&Properties", ToolBarIcons.show_properties, show_properties, evh );
+			AddItem( curr, "Show full &qualified name", ToolBarIcons.show_qual, show_full_qual, evh );
+			AddItem( curr, "Show operations &signature", ToolBarIcons.oper_signature, show_method_signatures, evh );
+			m.MenuItems.Add( curr );
+
+			evh = new EventHandler( Import );
+			curr = new FlatMenuItem( "Import", parent.proj.icon_list, (int)ToolBarIcons.add_related, false );
+			AddItem( curr, "Import ancestor && interfaces", ToolBarIcons.None, false, evh );
+			AddItem( curr, "Import successors", ToolBarIcons.None, false, evh );
+			m.MenuItems.Add( curr );
+
+
 		}
 
 		#endregion

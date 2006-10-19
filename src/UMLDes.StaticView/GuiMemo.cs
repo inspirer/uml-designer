@@ -39,6 +39,7 @@ namespace UMLDes.GUI {
 
 			Width = width;
 			Height = height;
+			setup_edges();
 		}
 
 		public override void Paint( Graphics g, int x, int y ) {
@@ -59,7 +60,6 @@ namespace UMLDes.GUI {
 		public override void PostLoad() {
 			text = text.Replace("\n", "\r\n");
 			parent.RefreshObject( this );
-			setup_edges();
 
 			base.PostLoad();
 		}

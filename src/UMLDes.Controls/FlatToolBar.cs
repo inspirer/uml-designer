@@ -332,6 +332,18 @@ namespace UMLDes.Controls {
 			return p;
 		}
 
+		public void RemovePanel( FlatToolBarPanel p ) {
+
+			if( highlighted != null )
+				highlighted.RemoveHighlight();
+			highlighted = null;
+
+			if( panels.IndexOf( p ) != -1 ) {
+				panels.Remove( p );
+				FixupHeightAndRows( p, -1 );
+			}
+		}
+
 		public FlatToolBar() {
 			panels = new ArrayList();
 			this.BackColor = Color.FromArgb( 219, 216, 209 );

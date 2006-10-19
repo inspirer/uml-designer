@@ -10,21 +10,35 @@ namespace UMLDes.GUI {
 
 	public class GuiBindedString : GuiBinded, ISelectable, IMoveable, IDropMenu, IStateObject, INeedRefresh {
 		[XmlAttribute] public string name;
-		public int pos_x, pos_y;
-		public int ux_bind;
-		public float uy_bind;
+		[XmlAttribute] public int pos_x, pos_y;
+		[XmlAttribute] public int ux_bind;
+		[XmlAttribute] public float uy_bind;
+        [XmlAttribute] public bool hidden;
 
-		const int NAME_SPACING_X = 5;
-		const int NAME_SPACING_Y = 3;
+		const int NAME_SPACING_X = 3;
+		const int NAME_SPACING_Y = 1;
 		const int inflate = 2;
 
-		[XmlIgnore] public string title{
-			get{ return name; }
-			set{
+		[XmlIgnore] public string Title {
+			get { 
+				if( name != null && name.StartsWith( "\x00AB" ) && name.EndsWith( "\xBB" ) )
+					return name.Substring( 1, name.Length - 2 );
+				return name; 
+			}
+			set {
 				if( value != name ) {
-					name = value;
+					if( name != null && name.StartsWith( "\x00AB" ) && name.EndsWith( "\xBB" ) )
+						name = "\x00AB" + value + "\xBB";
+					else
+						name = value;
 					parent.RefreshObject(this);
 				}
+			}
+		}
+
+		public override bool Hidden {
+			get {
+				return hidden;
 			}
 		}
 
@@ -33,7 +47,7 @@ namespace UMLDes.GUI {
 		public GuiBindedString() {
 		}
 
-		public GuiBindedString( string s, GuiObject pt, int x, int y, int ux, float uy ) {
+		public GuiBindedString( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) {
 
 			root = pt;
 			parent = root.parent;
@@ -41,9 +55,10 @@ namespace UMLDes.GUI {
 			pos_y = y;
 			ux_bind = ux;
 			uy_bind = uy;
+			this.hidden = hidden;
 
 			RecalculatePosition();
-			title = s;
+			Title = s;
 		}
 
 		public void Moving(int x, int y, ref int ux, ref float uy) {
@@ -101,7 +116,7 @@ namespace UMLDes.GUI {
 
 		#region Recalculate: size, location
 
-		private void RecalculatePosition() {
+		internal void RecalculatePosition() {
 			int X, Y;
 			(root as IUniversalCoords).coord_getxy( ux_bind, uy_bind, out X, out Y );
 
@@ -112,8 +127,13 @@ namespace UMLDes.GUI {
 		public void RefreshView( Graphics g ) {
 			SizeF size = g.MeasureString( name, parent.cview.GetFont( FontTypes.ROLE_NAME, FontStyle.Regular ),
 				1000, parent.cview.GetStringFormat( FormatTypes.CENTER ) );
-			place.Width = size.ToSize().Width + NAME_SPACING_X * 2;
-			place.Height = size.ToSize().Height + NAME_SPACING_Y * 2;
+			place.Width = (int)size.Width+1 + NAME_SPACING_X * 2 + inflate*2;
+			place.Height = (int)size.Height+1 + NAME_SPACING_Y * 2 + inflate*2;
+
+			if( place.Width < 20 )
+				place.Width = 20;
+			if( place.Height < 13 )
+				place.Height = 13;
 		}
 
 		#endregion
@@ -134,8 +154,9 @@ namespace UMLDes.GUI {
 					b = Brushes.Black;
 				}
 
+
 				g.DrawString( name, parent.cview.GetFont( FontTypes.ROLE_NAME, FontStyle.Regular ), 
-					b, rect, parent.cview.GetStringFormat( FormatTypes.CENTER ) );
+					b, rect.X + inflate + NAME_SPACING_X+1, rect.Y + inflate + NAME_SPACING_Y+1 );
 
 				if( selected ) {
 					int X, Y;
@@ -153,6 +174,9 @@ namespace UMLDes.GUI {
 					using( Pen p = new Pen( new HatchBrush( HatchStyle.Percent50, Color.SteelBlue, Color.White), inflate ) ) {
 						g.DrawRectangle( p, rect.X + inflate/2, rect.Y + inflate/2, rect.Width - inflate, rect.Height - inflate );
 					}
+				} else if( root.selected ) {
+					g.DrawLine( Pens.SteelBlue, rect.Left + inflate, rect.Bottom - inflate, rect.Right - inflate, rect.Bottom - inflate );
+					g.DrawLine( Pens.SteelBlue, rect.Left + inflate, rect.Top + inflate, rect.Right - inflate, rect.Top + inflate );
 				}
 			}
 		}
@@ -182,7 +206,7 @@ namespace UMLDes.GUI {
 
 			ux = x - place.X;
 			uy = y - place.Y;
-			return place.Contains( x, y );
+			return !hidden && place.Contains( x, y );
 		}
 		#endregion
 
@@ -190,21 +214,40 @@ namespace UMLDes.GUI {
 
 		public void Edited( string ns ) {
 			ObjectState before = GetState();
-			name = ns;
 			Invalidate();
-			parent.RefreshObject(this);
+			Title = ns;
 			Invalidate();
 			parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
 		}
 
 		public void RenameClick( object o, EventArgs ev ) {
-			InPlaceTextEdit.Start( "Rename", name, parent.cview.point_to_screen(place.X, place.Y), Math.Max( place.Width+20, 70 ), place.Height, parent.cview, new StringEditedEvent( Edited ), false );
+			InPlaceTextEdit.Start( "Rename", Title, parent.cview.point_to_screen(place.X, place.Y), Math.Max( place.Width+20, 70 ), place.Height, parent.cview, new StringEditedEvent( Edited ), false );
+		}
+
+		internal bool Visible {
+			get {
+				return !hidden;
+			}
+			set {
+				ObjectState before = GetState();
+				hidden = !value;
+				Invalidate();
+				parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
+			}
+		}
+
+		private void Hide(object sender, EventArgs e) {
+			Visible = false;
 		}
 
 		public void AddMenuItems( System.Windows.Forms.ContextMenu m, int x, int y ) {
-			FlatMenuItem rename = new FlatMenuItem( "Rename", parent.proj.icon_list, 0, false );
+			FlatMenuItem rename = new FlatMenuItem( "Rename", null, 0, false );
 			rename.Click += new EventHandler( RenameClick );
 			m.MenuItems.Add( rename );
+
+			FlatMenuItem hide = new FlatMenuItem( "Hide", null, 0, false );
+			hide.Click += new EventHandler(Hide);
+			m.MenuItems.Add( hide );
 		}
 
 		#endregion
@@ -216,6 +259,7 @@ namespace UMLDes.GUI {
 			public int ux, x, y;
 			public float uy;
 			public Rectangle place;
+			public bool hidden;
 		}
 
 		public void Apply(ObjectState v) {
@@ -227,6 +271,7 @@ namespace UMLDes.GUI {
 			pos_y = t.y;
 			name = t.name;
 			place = t.place;
+			hidden = t.hidden;
 			Invalidate();
 		}
 
@@ -238,9 +283,11 @@ namespace UMLDes.GUI {
 			t.y = pos_y;
 			t.name = name;
 			t.place = place;
+			t.hidden = hidden;
 			return t;
 		}
 
 		#endregion
+
 	}
 }
