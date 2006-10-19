@@ -1,19 +1,34 @@
+TODO1
+	!!! correct invalidate for related
 
-  + завернуть CS_* в Uml* 
-  + синхронизация модели
 
-  + "changed" server into UmlItem
-  + syncronization of UmlModel with 
-  + selection of members, moving across classes
+	stereotype for connections
+	associations for vars
+	st == null fix after refresh
+	import all ns members
+	scroller
+	moved on "deleted"
+	class members selection, menu
+	
 
-  + add member to qualifier
-  * selection of GuiMembers
-  + ConnectionStateQuadric.CheckIntersection
-  + ConnectionStateQuadric.remove_quadric_loops
-  + Add member, remove member
-  + Add class to model, etc.
-  + support delegates, properties, etc.
-  + scroll decorator
 
-  ! when qualifier resizes, connections must be refreshed
-  ! menu bugs
+TODO2
+	constraints
+	GuiDelegate
+	fix: connections while move
+	fix: quadric к углу Memo
+	fix: change line -> quadric, fix linked connections
+	show in tree
+
+optional
+	fix множественного таскания
+	actor
+
+Зависимости (пунктир + стрелка)
+	bind
+	derive
+	refine
+	use
+	---
+	access
+	import
