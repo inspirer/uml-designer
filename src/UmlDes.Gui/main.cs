@@ -53,6 +53,10 @@ namespace UMLDes {
 		internal System.Windows.Forms.StatusBarPanel status_panel;
 		private UMLDes.Controls.FlatMenuItem menuItem1;
 		private UMLDes.Controls.FlatMenuItem menu_SaveToImage;
+		private UMLDes.Controls.FlatMenuItem menuItem2;
+		private UMLDes.Controls.FlatMenuItem menu_ZoomIn;
+		private UMLDes.Controls.FlatMenuItem menu_ZoomOut;
+		private UMLDes.Controls.FlatMenuItem menu_copyAsImage;
 		public ImageList list;
 		public UMLDes.Controls.UmlSolutionTree SolutionTree { get { return ProjectTree; } }
 		
@@ -111,17 +115,26 @@ namespace UMLDes {
 			// Scale menu
 			p = toolBar1.AddPanel( 0, "Scale" );
 			ComboBox cb = new ComboBox(); 
+			cb.TabStop = false;
 			cb.Size = new Size( 90, 20 );
 			cb.DropDownStyle = ComboBoxStyle.DropDownList;
 			cb.MaxDropDownItems = 15;
 
-			for( int i = 0; i < scalevalue.Length; i += 2 )
-				cb.Items.Add( (scalevalue[i] * 100 / scalevalue[i+1] ).ToString() + "%" );
+			for( int i = 0; i < ViewCtrl.scalevalue.Length; i += 2 )
+				cb.Items.Add( (ViewCtrl.scalevalue[i] * 100 / ViewCtrl.scalevalue[i+1] ).ToString() + "%" );
 			cb.SelectedIndex = 5;
-			cb.SelectedIndexChanged += new EventHandler(ScaleChanged);
-			scalecombo = cb;
+			cb.SelectedIndexChanged += new EventHandler(ViewCtrl1.ScaleChanged);
+			ViewCtrl1.scalecombo = cb;
 
 			p.AddControl( cb );
+		}
+
+		private void menu_ZoomOut_Click(object sender, System.EventArgs e) {
+			ViewCtrl1.ZoomOut();
+		}
+
+		private void menu_ZoomIn_Click(object sender, System.EventArgs e) {
+			ViewCtrl1.ZoomIn();
 		}
 
 		#endregion
@@ -185,28 +198,6 @@ namespace UMLDes {
 			}
 		}
 
-		static int[] scalevalue = new int[] {
-												3, 1,		// 300 %
-												2, 1,		// 200 %
-												5, 3,		// 166 %
-												3, 2,		// 150 %
-												4, 3,		// 133 %
-												1, 1,		// 100 %
-												9, 10,		// 90 %
-												3, 4,		// 75 %
-												2, 3,		// 66 %
-												1, 2,		// 50 %
-												1, 3,		// 33 %
-												1, 4,		// 25 %
-												1, 5,		// 20 %
-		};
-
-		ComboBox scalecombo;				
-
-		protected void ScaleChanged( object v, EventArgs e ) {
-			ViewCtrl1.SetupScale( scalevalue[scalecombo.SelectedIndex*2], scalevalue[scalecombo.SelectedIndex*2+1] );			
-		}
-
 		#endregion
 		
 		#region Windows Form Designer generated code
@@ -244,6 +235,10 @@ namespace UMLDes {
 			this.menu_Delete = new UMLDes.Controls.FlatMenuItem();
 			this.menuItem31 = new UMLDes.Controls.FlatMenuItem();
 			this.menu_SelectAll = new UMLDes.Controls.FlatMenuItem();
+			this.menu_copyAsImage = new UMLDes.Controls.FlatMenuItem();
+			this.menuItem2 = new UMLDes.Controls.FlatMenuItem();
+			this.menu_ZoomIn = new UMLDes.Controls.FlatMenuItem();
+			this.menu_ZoomOut = new UMLDes.Controls.FlatMenuItem();
 			this.menumain_Project = new UMLDes.Controls.FlatMenuItem();
 			this.menu_AddFiles = new UMLDes.Controls.FlatMenuItem();
 			this.menu_AddStaticView = new UMLDes.Controls.FlatMenuItem();
@@ -279,7 +274,7 @@ namespace UMLDes {
 			// 
 			this.menumain_Help.ImageIndex = 0;
 			this.menumain_Help.Images = null;
-			this.menumain_Help.Index = 3;
+			this.menumain_Help.Index = 4;
 			this.menumain_Help.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
 																						  this.menu_About,
 																						  this.menu_show_hints,
@@ -310,6 +305,7 @@ namespace UMLDes {
 			this.mainMenu1.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
 																					  this.menumain_File,
 																					  this.menumain_Edit,
+																					  this.menuItem2,
 																					  this.menumain_Project,
 																					  this.menumain_Help});
 			// 
@@ -441,7 +437,8 @@ namespace UMLDes {
 																						  this.menu_Paste,
 																						  this.menu_Delete,
 																						  this.menuItem31,
-																						  this.menu_SelectAll});
+																						  this.menu_SelectAll,
+																						  this.menu_copyAsImage});
 			this.menumain_Edit.OwnerDraw = true;
 			this.menumain_Edit.Text = "&Edit";
 			this.menumain_Edit.Popup += new System.EventHandler(this.EditMenuPopup);
@@ -532,11 +529,52 @@ namespace UMLDes {
 			this.menu_SelectAll.Text = "Select &All";
 			this.menu_SelectAll.Click += new System.EventHandler(this.menu_SelectAll_Click);
 			// 
+			// menu_copyAsImage
+			// 
+			this.menu_copyAsImage.ImageIndex = 0;
+			this.menu_copyAsImage.Images = null;
+			this.menu_copyAsImage.Index = 9;
+			this.menu_copyAsImage.OwnerDraw = true;
+			this.menu_copyAsImage.Shortcut = System.Windows.Forms.Shortcut.CtrlShiftC;
+			this.menu_copyAsImage.Text = "Copy diagram as Image";
+			this.menu_copyAsImage.Click += new System.EventHandler(this.menu_copyAsImage_Click);
+			// 
+			// menuItem2
+			// 
+			this.menuItem2.ImageIndex = 0;
+			this.menuItem2.Images = null;
+			this.menuItem2.Index = 2;
+			this.menuItem2.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+																					  this.menu_ZoomIn,
+																					  this.menu_ZoomOut});
+			this.menuItem2.OwnerDraw = true;
+			this.menuItem2.Text = "&View";
+			// 
+			// menu_ZoomIn
+			// 
+			this.menu_ZoomIn.ImageIndex = 0;
+			this.menu_ZoomIn.Images = null;
+			this.menu_ZoomIn.Index = 0;
+			this.menu_ZoomIn.OwnerDraw = true;
+			this.menu_ZoomIn.Shortcut = System.Windows.Forms.Shortcut.CtrlJ;
+			this.menu_ZoomIn.Text = "Zoom in";
+			this.menu_ZoomIn.Click += new System.EventHandler(this.menu_ZoomIn_Click);
+			// 
+			// menu_ZoomOut
+			// 
+			this.menu_ZoomOut.ImageIndex = 0;
+			this.menu_ZoomOut.Images = null;
+			this.menu_ZoomOut.Index = 1;
+			this.menu_ZoomOut.OwnerDraw = true;
+			this.menu_ZoomOut.Shortcut = System.Windows.Forms.Shortcut.CtrlK;
+			this.menu_ZoomOut.Text = "Zoom out";
+			this.menu_ZoomOut.Click += new System.EventHandler(this.menu_ZoomOut_Click);
+			// 
 			// menumain_Project
 			// 
 			this.menumain_Project.ImageIndex = 0;
 			this.menumain_Project.Images = null;
-			this.menumain_Project.Index = 2;
+			this.menumain_Project.Index = 3;
 			this.menumain_Project.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
 																							 this.menu_AddFiles,
 																							 this.menu_AddStaticView,
@@ -590,6 +628,7 @@ namespace UMLDes {
 			this.toolBar1.Name = "toolBar1";
 			this.toolBar1.Size = new System.Drawing.Size(784, 24);
 			this.toolBar1.TabIndex = 10;
+			this.toolBar1.TabStop = false;
 			// 
 			// panel1
 			// 
@@ -835,6 +874,16 @@ namespace UMLDes {
 				else
 					MessageBox.Show( "Unknown extension: " + ext, "Cannot save", MessageBoxButtons.OK, MessageBoxIcon.Warning );
 			}
+		}
+
+		private void menu_copyAsImage_Click(object sender, System.EventArgs e) {
+			Bitmap bmp = ViewCtrl1.PrintToImage();
+			if( bmp == null ) {
+				MessageBox.Show( "Diagram is empty", "Nothing to copy", MessageBoxButtons.OK, MessageBoxIcon.Information );
+				return;
+			}
+
+			System.Windows.Forms.Clipboard.SetDataObject( bmp, false );
 		}
 
 		#endregion

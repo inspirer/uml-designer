@@ -258,5 +258,34 @@ namespace UMLDes.GUI {
 			ux = ux;
 			uy = uy;
 		}
+
+		public float get_empty_point_on_edge( int ux ) {
+
+			int i = 0;
+			float[] pnts = new float[16];
+
+			foreach( GuiConnectionPoint p in cpoints )
+				if( p.ux == ux ) {
+					if( i == 14 )
+						return .5f;
+					pnts[i++] = p.uy;
+				}
+
+			pnts[i++] = 0f;
+			pnts[i++] = 1f;
+			Array.Sort( pnts, 0, i );
+
+			float max_length = 0.05f;
+			float new_point = .5f;
+
+			for( int e = 0; e < i - 1; e++ ) {
+				if( pnts[e+1] - pnts[e] > max_length ) {
+					new_point = (pnts[e+1] + pnts[e])/2;
+					max_length = pnts[e+1] - pnts[e];
+				}
+			}
+
+            return new_point;
+		}
 	}
 }

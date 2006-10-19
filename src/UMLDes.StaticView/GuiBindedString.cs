@@ -21,7 +21,7 @@ namespace UMLDes.GUI {
 		const int NAME_SPACING_Y = 1;
 		const int inflate = 2;
 
-		protected abstract string Text { get; set; }
+		internal abstract string Text { get; set; }
 		protected abstract string ToDisplay { get; }
 
 		public override bool Hidden {
@@ -290,7 +290,7 @@ namespace UMLDes.GUI {
 
 		[XmlAttribute] public string name;
 
-		[XmlIgnore] protected override string Text {
+		[XmlIgnore] internal override string Text {
 			get { 
 				return name; 
 			}
@@ -332,7 +332,7 @@ namespace UMLDes.GUI {
 
 		[XmlAttribute] public string stereo;
 
-		[XmlIgnore] protected override string Text {
+		[XmlIgnore] internal override string Text {
 			get { 
 				return stereo; 
 			}

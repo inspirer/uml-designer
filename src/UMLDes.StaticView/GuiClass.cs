@@ -138,7 +138,7 @@ namespace UMLDes.GUI {
 		class State : ObjectState {
 			public int x, y;
 			public bool b1, b2, b3, b4, b5, b6, hidden;
-			public string stereo;
+			public string stereo, name;
 			public ArrayList members;
 		}
 
@@ -162,6 +162,9 @@ namespace UMLDes.GUI {
 				members = null;
 			fillHash();
 
+			name = t.name;
+			st = parent.proj.model.GetObject( name ) as UmlClass;
+
 			RefreshContent();
 			SetHidden( t.hidden ); 
 		}
@@ -178,6 +181,7 @@ namespace UMLDes.GUI {
 			t.b6 = show_only_public;
 			t.stereo = stereo;
 			t.hidden = hidden;
+			t.name = name;
 
 			if( members != null ) {
 				t.members = new ArrayList( members.Count );
@@ -334,10 +338,32 @@ namespace UMLDes.GUI {
 
 		#endregion
 
+		#region Rename
+
+		public void EditedName( string name ) { 
+			ObjectState before = GetState();
+			this.name = name;
+			st = parent.proj.model.GetObject( name ) as UmlClass;
+			RefreshContent();
+			parent.Undo.Push( new StateOperation( this, before, GetState() ), false );
+		}
+
+		public void RestoreName( object v, EventArgs e ) {
+			Rectangle r = new Rectangle( place.X+inflate+1, place.Y+inflate+1, place.Width, 0 );
+			InPlaceTextEdit.Start( "Enter new name", name, parent.cview.point_to_screen(r.X, r.Y), Math.Max( r.Width, 70 ), r.Height, parent.cview, new StringEditedEvent( EditedName ), false );
+		}
+
+		#endregion
+
 		public void AddMenuItems( System.Windows.Forms.ContextMenu m, int x, int y ) {
 
 			FlatMenuItem curr;
 			EventHandler evh;
+
+			if( st == null || st.Deleted ) {
+				parent.AddItem( m, "Enter new name", ToolBarIcons.None, false, new EventHandler( RestoreName ) );
+				return;
+			}
 
 			// Display Options
 			evh = new EventHandler( DisplayOptions );

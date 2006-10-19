@@ -155,9 +155,9 @@ namespace UMLDes.Model.CSharp {
 					case UmlKind.Class:
 					case UmlKind.Struct:
 						ClassDecl cdecl = (ClassDecl)classes[ent];
+						((UmlClass)ent).BaseObjects = new ArrayList();
+						((UmlClass)ent).BaseList = new ArrayList();
 						if( cdecl.inheritance != null && cdecl.inheritance.nodes.Count > 0 ) {
-							((UmlClass)ent).BaseObjects = new ArrayList();
-							((UmlClass)ent).BaseList = new ArrayList();
 							foreach( IdentNode id in cdecl.inheritance.nodes ) {
 								UmlType resolved = ResolveType( id.identifier, ent );
 								if( resolved == null )

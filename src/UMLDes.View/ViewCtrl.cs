@@ -542,6 +542,39 @@ namespace UMLDes {
 			Invalidate();
 		}
 
+		public static int[] scalevalue = new int[] {
+												3, 1,		// 300 %
+												2, 1,		// 200 %
+												5, 3,		// 166 %
+												3, 2,		// 150 %
+												4, 3,		// 133 %
+												1, 1,		// 100 %
+												9, 10,		// 90 %
+												3, 4,		// 75 %
+												2, 3,		// 66 %
+												1, 2,		// 50 %
+												1, 3,		// 33 %
+												1, 4,		// 25 %
+												1, 5,		// 20 %
+		};
+
+		public ComboBox scalecombo = null;
+
+		public void ScaleChanged( object v, EventArgs e ) {
+			if( scalecombo != null )
+				SetupScale( scalevalue[scalecombo.SelectedIndex*2], scalevalue[scalecombo.SelectedIndex*2+1] );			
+		}
+
+		public void ZoomOut() {
+			if( scalecombo != null && scalecombo.SelectedIndex < scalecombo.Items.Count-1 )
+				scalecombo.SelectedIndex++;
+		}
+
+		public void ZoomIn() {
+			if( scalecombo != null && scalecombo.SelectedIndex > 0 )
+				scalecombo.SelectedIndex--;
+		}
+
 		#endregion
 
 		#region Drag & Drop
@@ -732,6 +765,44 @@ namespace UMLDes {
 				curr.Paint( gr, new Rectangle( new Point(0,0), rect.Size ), rect.X, rect.Y );
 			}
 			return bmp;
+		}
+
+		#endregion
+
+		#region Keyboard actions
+
+		protected override bool IsInputKey(Keys keyData) {
+			switch( keyData ) {
+				case Keys.Left: case Keys.Right: case Keys.Up: case Keys.Down:
+					return true;
+			}
+			return base.IsInputKey (keyData);
+		}
+
+
+		protected override void OnKeyDown(KeyEventArgs e) {
+			base.OnKeyDown (e);
+
+			switch( e.KeyCode ) {
+				case Keys.Add:
+					ZoomIn();
+					break;
+				case Keys.Subtract:
+					ZoomOut();
+					break;
+				case Keys.NumPad4: case Keys.Left:
+					AdjustPageCoords( -50, 0 );
+					break;
+				case Keys.NumPad6: case Keys.Right:
+					AdjustPageCoords( 50, 0 );
+					break;
+				case Keys.NumPad8: case Keys.Up:
+					AdjustPageCoords( 0, -50 );
+					break;
+				case Keys.NumPad2: case Keys.Down:
+					AdjustPageCoords( 0, 50 );
+					break;
+			}
 		}
 
 		#endregion

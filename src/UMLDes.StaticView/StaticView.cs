@@ -453,9 +453,10 @@ namespace UMLDes.GUI {
 				GuiObject obj = (GuiObject)active_objects[i];
 				if( obj is GuiClass ) {
 					foreach( UmlRelation rel in RelationsHelper.GetRelations( ((GuiClass)obj).st, proj.model ) ) {
-						if( ht.ContainsKey( rel.ID ) )
+						if( ht.ContainsKey( rel.ID ) ) {
+							((GuiConnection)ht[rel.ID]).AdjustRelation( rel );
 							ht.Remove( rel.ID );
-						else {
+						} else {
 							NewRelation( rel );
 						}
 					}
@@ -471,7 +472,21 @@ namespace UMLDes.GUI {
 		public void NewRelation( UmlRelation rel ) {
 			GuiClass c1 = FindClass(rel.src), c2 = FindClass(rel.dest);
 			if( c1 != null && c2 != null ) {
-				GuiConnection c = new GuiConnection( new GuiConnectionPoint( c1, 1, .5f, 0 ), new GuiConnectionPoint( c2, 3, .5f, 1 ), rel.type, this, rel.type == UmlRelationType.Attachment ? GuiConnectionStyle.Line : MouseAgent.conn_style );
+				int ux1 = 1, ux2 = 3;
+				float uy1 = .5f, uy2 = .5f;
+
+				if( rel.type == UmlRelationType.Association ) {
+					ux1 = 0;
+					uy1 = c1.get_empty_point_on_edge( ux1 );
+					ux2 = 2;
+					uy2 = c2.get_empty_point_on_edge( ux2 );
+				} else if( rel.type == UmlRelationType.Realization || rel.type == UmlRelationType.Inheritance ) {
+					uy2 = c2.get_empty_point_on_edge( ux2 );
+				}
+
+				GuiConnection c = new GuiConnection( new GuiConnectionPoint( c1, ux1, uy1, 0 ), new GuiConnectionPoint( c2, ux2, uy2, 1 ), rel.type, this, rel.type == UmlRelationType.Attachment ? GuiConnectionStyle.Line : MouseAgent.conn_style );
+				if( rel.type == UmlRelationType.Association )
+					c.nav = GuiConnectionNavigation.Left;
 				c.relation_id = rel.ID;
 				c.first.UpdatePosition( true );
 				c.second.UpdatePosition( true );

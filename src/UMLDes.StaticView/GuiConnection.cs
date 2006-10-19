@@ -387,7 +387,23 @@ namespace UMLDes.GUI {
 
 		#endregion
 
-		#region "Fixup functions: CheckIntersection, PostLoad, ConnectionCreated, DoCreationFixup"
+		#region "Fixup functions: CheckIntersection, PostLoad, ConnectionCreated, DoCreationFixup, AdjustRelation"
+
+		public void AdjustRelation( UmlRelation rel ) {
+			Invalidate();
+			invalidate_children();
+			if( rel.src_role != null )
+				first.role.Text = rel.src_role;
+			if( rel.dest_role != null )
+				second.role.Text = rel.dest_role;
+			if( rel.name != null )
+				conn_name.Text = rel.name;
+			if( rel.stereo != null )
+				conn_stereo.Text = rel.stereo;
+			type = rel.type;
+			invalidate_children();
+			Invalidate();
+		}
 
 		public bool CheckIntersection( ArrayList /* of IAroundObject */ arobjs, Hashtable states ) {
 			return Style.CheckIntersection( arobjs, states );
@@ -703,6 +719,10 @@ namespace UMLDes.GUI {
 			}
 		}
 
+		public void Hide( object o, EventArgs ev ) { 
+			Hidden = true;
+		}
+
 		public void AddMenuItems( System.Windows.Forms.ContextMenu m, int x, int y ) {
 
 			FlatMenuItem curr;
@@ -748,6 +768,8 @@ namespace UMLDes.GUI {
 			parent.AddItem( curr, "Show all", ToolBarIcons.None, false, evh );
 			parent.AddItem( curr, "Hide all", ToolBarIcons.None, false, evh );
 			m.MenuItems.Add( curr );
+
+			parent.AddItem( m, "Hide connection", ToolBarIcons.None, false, new EventHandler( Hide ) );
 		}
 
 		internal bool ShowRoles {
