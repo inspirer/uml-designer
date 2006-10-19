@@ -206,7 +206,7 @@ namespace UMLDes.GUI {
 								if( sel is ISelectable && !sel.Hidden && (sel as ISelectable).HasPoint(x, y, out dx, out dy))
 									return sel;
 						}
-						b = (b is GuiBinded) ? (b as GuiBinded).root : null;
+						b = (b is GuiBound) ? (b as GuiBound).root : null;
 					} while( b != null );
 				}
 			}
@@ -236,7 +236,7 @@ namespace UMLDes.GUI {
 
 		void PaintChildren( Graphics g, Rectangle r, int offx, int offy, IDrawable dr, Rectangle piece ) {
 			GuiObject o = dr as GuiObject;
-			foreach( GuiBinded b in o.children ) 
+			foreach( GuiBound b in o.children ) 
 				if( !b.Hidden ) {
 					if( b.NeedRepaint( piece ) )
 						b.Paint( g, r, offx, offy );
@@ -295,7 +295,7 @@ namespace UMLDes.GUI {
 			if( o is IAroundObject )
 				AroundObjects.Add( o );
 			if( o.children != null )
-				foreach( GuiBinded b in o.children )
+				foreach( GuiBound b in o.children )
 					PreLoadRegisterObjects( b );
 		}
 

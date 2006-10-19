@@ -160,8 +160,14 @@ namespace UMLDes {
 				MessageBox.Show( sb.ToString(), "Errors", MessageBoxButtons.OK, MessageBoxIcon.Error );
 			} else {
 				container.SolutionTree.RefreshModel();
-				foreach( UMLDes.GUI.View v in diagrams )
+				UMLDes.GUI.View before = container.GetCurrentView();
+				foreach( UMLDes.GUI.View v in diagrams ) {
+					if( container != null )
+						container.SelectView( v, false );
 					v.RefreshContent();
+				}
+				if( before != null )
+					container.SelectView( before, true );
 			}
 			GC.Collect();
 			container.SetStatus( "Ready" );

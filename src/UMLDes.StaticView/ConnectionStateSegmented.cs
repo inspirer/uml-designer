@@ -50,7 +50,7 @@ namespace UMLDes.GUI {
 						ux = n - 1;
 						uy = Geometry.point_to_uy( x2, y2, new Point( ((GuiPoint)conn.ipoints[n-1]).x, ((GuiPoint)conn.ipoints[n-1]).y ),
 							new Point( ((GuiPoint)conn.ipoints[n+1]).x, ((GuiPoint)conn.ipoints[n+1]).y ) );
-						conn.remove_child( (GuiBinded)conn.ipoints[n] );
+						conn.remove_child( (GuiBound)conn.ipoints[n] );
 						conn.remove_point( n );
 
 					} else {

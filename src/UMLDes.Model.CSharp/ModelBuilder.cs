@@ -409,6 +409,7 @@ namespace UMLDes.Model.CSharp {
 			cl.name = decl.name.identifier;
 			cl.using_chain = usings;
 			cl.Deleted = false;
+			cl.IsAbstract = ( decl.modifiers != null && (decl.modifiers.value & (int)Modifiers.Abstract) != 0 );
 			FillClassWithTypes( cl, decl );
 		}
 

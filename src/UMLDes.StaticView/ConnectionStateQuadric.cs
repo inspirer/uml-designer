@@ -241,7 +241,7 @@ namespace UMLDes.GUI {
 					if( to_remove > 0 ) {
 						if( segnum > i )
 							segnum --;
-						conn.remove_child( conn.ipoints[to_remove] as GuiBinded );
+						conn.remove_child( conn.ipoints[to_remove] as GuiBound );
 						conn.remove_point( to_remove );
 						i--;
 					}
@@ -254,7 +254,7 @@ namespace UMLDes.GUI {
 					((conn.ipoints[i] as GuiPoint).y == (conn.ipoints[i-1] as GuiPoint).y && (conn.ipoints[i] as GuiPoint).y == (conn.ipoints[i+1] as GuiPoint).y ) ) {
 					if( segnum >= i )
 						segnum --;
-					conn.remove_child( conn.ipoints[i] as GuiBinded );
+					conn.remove_child( conn.ipoints[i] as GuiBound );
 					conn.remove_point( i );
 					i--;
 				}
@@ -302,7 +302,7 @@ namespace UMLDes.GUI {
 							} else {
 								(conn.ipoints[2] as GuiPoint).x = conn.first.x;
 							}
-							conn.remove_child( conn.ipoints[1] as GuiBinded );
+							conn.remove_child( conn.ipoints[1] as GuiBound );
 							conn.remove_point( 1 );
 							new_segment_to_drag = i;
 							segnum = 0;
@@ -314,7 +314,7 @@ namespace UMLDes.GUI {
 					} else if( i == conn.ipoints.Count - 2 ) {
 						bool was_bad = bad_segment( (conn.ipoints[i-1] as GuiPoint).x, (conn.ipoints[i-1] as GuiPoint).y, (conn.ipoints[i] as GuiPoint).x, (conn.ipoints[i] as GuiPoint).y );
 						if( conn.ipoints.Count > 3 && (was_bad || !bad_segment(conn.second.x, conn.second.y, vertical ? (conn.ipoints[i-1] as GuiPoint).x : conn.second.x, vertical ? conn.second.y : (conn.ipoints[i-1] as GuiPoint).y )) ) {
-							conn.remove_child( conn.ipoints[i] as GuiBinded );
+							conn.remove_child( conn.ipoints[i] as GuiBound );
 							conn.remove_point( i );
 
 							if( vertical ) {
@@ -357,9 +357,9 @@ namespace UMLDes.GUI {
 						}
 
 						// remove two points
-						conn.remove_child( conn.ipoints[i] as GuiBinded );
+						conn.remove_child( conn.ipoints[i] as GuiBound );
 						conn.remove_point( i );
-						conn.remove_child( conn.ipoints[i] as GuiBinded );
+						conn.remove_child( conn.ipoints[i] as GuiBound );
 						conn.remove_point( i );
 
 						if( size != 0 ) {
@@ -577,7 +577,7 @@ namespace UMLDes.GUI {
 		/*private void create_quadric_connection( bool delete_points ) {
 			if( delete_points ) {
 				for( int i = 1; i < conn.ipoints.Count - 1; i++ ) {
-					conn.remove_child( conn.ipoints[i] as GuiBinded );
+					conn.remove_child( conn.ipoints[i] as GuiBound );
 				}
 			}
 		}*/

@@ -7,7 +7,7 @@ using System.Xml.Serialization;
 namespace UMLDes.GUI {
 
 	// root of GuiPoint must be GuiConnection
-	public abstract class GuiPoint : GuiBinded, ISelectable {
+	public abstract class GuiPoint : GuiBound, ISelectable {
 
 		[XmlAttribute] public int x, y;
 		protected const int POINT_NORMAL_SIZE = 4;
@@ -104,7 +104,7 @@ namespace UMLDes.GUI {
 		public const int DELTA = 10;
 
 		[XmlIgnore] public IAcceptConnection item;
-		[XmlIgnore] public GuiBindedString role;
+		[XmlIgnore] public GuiBoundString role;
 
 		[XmlAttribute] public int ux;
 		[XmlAttribute] public float uy;

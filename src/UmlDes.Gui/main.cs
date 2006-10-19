@@ -788,6 +788,10 @@ namespace UMLDes {
 
 		ArrayList view_toolbar_panels = null;
 
+		public GUI.View GetCurrentView() {
+			return ViewCtrl1.Curr;
+		}
+
 		public void SelectView( GUI.View v, bool update ) {
 			ViewCtrl1.Curr = v;
 			if( update ) {

@@ -9,9 +9,9 @@ using UMLDes.Controls;
 namespace UMLDes.GUI {
 
 	/// <summary>
-	/// GuiBindedStringObject is root class for all signs around connection, it draws string in the rectangle
+	/// GuiBoundStringObject is root class for all signs around connection, it draws string in the rectangle
 	/// </summary>
-	public abstract class GuiBindedStringObject : GuiBinded, ISelectable, IMoveable, IDropMenu, IStateObject, INeedRefresh {
+	public abstract class GuiBoundStringObject : GuiBound, ISelectable, IMoveable, IDropMenu, IStateObject, INeedRefresh {
 		[XmlAttribute] public int pos_x, pos_y;
 		[XmlAttribute] public int ux_bind;
 		[XmlAttribute] public float uy_bind;
@@ -32,10 +32,10 @@ namespace UMLDes.GUI {
 
 		[XmlIgnore] public ArrayList Associated { get { return null; } }
 
-		public GuiBindedStringObject() {
+		public GuiBoundStringObject() {
 		}
 
-		public GuiBindedStringObject( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) {
+		public GuiBoundStringObject( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) {
 
 			root = pt;
 			parent = root.parent;
@@ -283,9 +283,9 @@ namespace UMLDes.GUI {
 	/// <summary>
 	/// Simple string
 	/// </summary>
-	public class GuiBindedString : GuiBindedStringObject {
-		public GuiBindedString() {}
-		public GuiBindedString( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) : base( s, pt, x, y, ux, uy, hidden ) {
+	public class GuiBoundString : GuiBoundStringObject {
+		public GuiBoundString() {}
+		public GuiBoundString( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) : base( s, pt, x, y, ux, uy, hidden ) {
 		}
 
 		[XmlAttribute] public string name;
@@ -311,11 +311,11 @@ namespace UMLDes.GUI {
 
 		#region State
 
-		protected override void doApply(UMLDes.GUI.GuiBindedStringObject.State t) {
+		protected override void doApply(UMLDes.GUI.GuiBoundStringObject.State t) {
             name = (string)t.o1;
 		}
 
-		protected override void FillState(UMLDes.GUI.GuiBindedStringObject.State t) {
+		protected override void FillState(UMLDes.GUI.GuiBoundStringObject.State t) {
 			t.o1 = name;
 		}
 
@@ -325,9 +325,9 @@ namespace UMLDes.GUI {
 	/// <summary>
 	/// Stereotype container
 	/// </summary>
-	public class GuiBindedStereotype : GuiBindedStringObject {
-		public GuiBindedStereotype() {}
-		public GuiBindedStereotype( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) : base( s, pt, x, y, ux, uy, hidden ) {
+	public class GuiBoundStereotype : GuiBoundStringObject {
+		public GuiBoundStereotype() {}
+		public GuiBoundStereotype( string s, GuiObject pt, int x, int y, int ux, float uy, bool hidden ) : base( s, pt, x, y, ux, uy, hidden ) {
 		}
 
 		[XmlAttribute] public string stereo;
@@ -353,11 +353,11 @@ namespace UMLDes.GUI {
 
 		#region State
 
-		protected override void doApply(UMLDes.GUI.GuiBindedStringObject.State t) {
+		protected override void doApply(UMLDes.GUI.GuiBoundStringObject.State t) {
 			stereo = (string)t.o1;
 		}
 
-		protected override void FillState(UMLDes.GUI.GuiBindedStringObject.State t) {
+		protected override void FillState(UMLDes.GUI.GuiBoundStringObject.State t) {
 			t.o1 = stereo;
 		}
 

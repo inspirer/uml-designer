@@ -19,15 +19,15 @@ namespace UMLDes.GUI {
 		#region children
 
 		[
-		 XmlElement("String", typeof(GuiBindedString)), 
+		 XmlElement("String", typeof(GuiBoundString)), 
 		 XmlElement("ConnectionPoint",typeof(GuiConnectionPoint)),
-		 XmlElement("Stereotype", typeof(GuiBindedStereotype)),
+		 XmlElement("Stereotype", typeof(GuiBoundStereotype)),
 		 XmlElement("Point",typeof(GuiIntermPoint)) 
 		]
         public ArrayList children;
 		ArrayList _children;       // used by IRemoveable
 
-		public void add_child( GuiBinded p, string type ) {
+		public void add_child( GuiBound p, string type ) {
 			p.root = this;
 			if( children == null )
 				children = new ArrayList();
@@ -36,7 +36,7 @@ namespace UMLDes.GUI {
 				p.type = type;
 		}
 
-		public void remove_child( GuiBinded p ) {
+		public void remove_child( GuiBound p ) {
 			if( children != null )
 				children.Remove( p );
 		}
@@ -46,7 +46,7 @@ namespace UMLDes.GUI {
 			if( children != null ) {
 				_children = children;
 				children = null;
-				foreach( GuiBinded b in _children ) {
+				foreach( GuiBound b in _children ) {
 					if( b is IRemoveableChild )
 						( b as IRemoveableChild ).Unlink();
 					else
@@ -59,16 +59,16 @@ namespace UMLDes.GUI {
 		public virtual void Restore() {
 			children = _children;
 			if( children != null )
-				foreach( GuiBinded b in children )
+				foreach( GuiBound b in children )
 					if( b is IRemoveableChild )
 						( b as IRemoveableChild ).Relink();
 			invalidate_children();
 			_children = null;
 		}
 
-		public GuiBinded find_child( string type ) {
+		public GuiBound find_child( string type ) {
 			if( children != null )
-				foreach( GuiBinded p in children )
+				foreach( GuiBound p in children )
 					if( p.type.Equals( type ) )
 						return p;
 			return null;
@@ -82,7 +82,7 @@ namespace UMLDes.GUI {
 
 		public void notify_children() {
 			if( children != null )
-				foreach( GuiBinded o in children )
+				foreach( GuiBound o in children )
 					o.ParentChanged();
 		}		
 
@@ -97,7 +97,7 @@ namespace UMLDes.GUI {
 			get {
 				if( children != null ) {
 					Rectangle sum = place;
-					foreach( GuiBinded b in children )
+					foreach( GuiBound b in children )
 						sum = Rectangle.Union( b.ContainingRect, sum );
 					return sum;
 				} else 
@@ -109,7 +109,7 @@ namespace UMLDes.GUI {
 		// loading
 		public virtual void PostLoad() {
 			if( children != null )
-                foreach( GuiBinded p in children ) {
+                foreach( GuiBound p in children ) {
 					p.root = this;
 					p.parent = parent;
 					p.PostLoad();
@@ -128,7 +128,7 @@ namespace UMLDes.GUI {
 
 		public virtual void ModifyUniversalCoords() {
 			if( children != null ) {
-				foreach( GuiBinded c in children ) {
+				foreach( GuiBound c in children ) {
 					c.UpdateCoords( this );
 				}
 			}
@@ -142,7 +142,7 @@ namespace UMLDes.GUI {
 		abstract public string Name { get; }
 	}
 
-	public abstract class GuiBinded : GuiObject {
+	public abstract class GuiBound : GuiObject {
 		[XmlIgnore] public GuiObject root;
 		[XmlAttribute] public string type;
 

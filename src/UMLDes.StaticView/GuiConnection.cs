@@ -42,8 +42,8 @@ namespace UMLDes.GUI {
 		[XmlAttribute] public GuiConnectionNavigation nav;
 		[XmlIgnore] bool created = false;
 		[XmlIgnore] public ConnectionState Style;
-		[XmlIgnore] public GuiBindedString conn_name;
-		[XmlIgnore] public GuiBindedStereotype conn_stereo;
+		[XmlIgnore] public GuiBoundString conn_name;
+		[XmlIgnore] public GuiBoundStereotype conn_stereo;
 		[XmlAttribute] public string relation_id;
 		[XmlAttribute] public bool hidden;
 
@@ -193,7 +193,7 @@ namespace UMLDes.GUI {
 
 		public void remove_point_child( int at_pos ) {
 			(ipoints[at_pos] as GuiIntermPoint).Invalidate();
-			remove_child( (GuiBinded)ipoints[at_pos] );
+			remove_child( (GuiBound)ipoints[at_pos] );
 			remove_point( at_pos );
 		}
 
@@ -378,7 +378,7 @@ namespace UMLDes.GUI {
 					r = Rectangle.Union( r, new Rectangle(((GuiPoint)ipoints[i]).x - decor_size, ((GuiPoint)ipoints[i]).y - decor_size, 2*decor_size, 2*decor_size) );
 
 				if( children != null )
-					foreach( GuiBinded b in children )
+					foreach( GuiBound b in children )
 						r = Rectangle.Union( b.ContainingRect, r );
 				return r;
 			}
@@ -413,8 +413,8 @@ namespace UMLDes.GUI {
 			Style.DoCreationFixup(false);
 		}
 
-		private GuiBindedString create_label( string label, int ux, float uy, Geometry.Direction dir, int offset, bool hidden ) {
-			GuiBindedString bs = new GuiBindedString( label, this, 0, -offset, ux, uy, hidden );
+		private GuiBoundString create_label( string label, int ux, float uy, Geometry.Direction dir, int offset, bool hidden ) {
+			GuiBoundString bs = new GuiBoundString( label, this, 0, -offset, ux, uy, hidden );
 
 			switch( dir ) {
 				case Geometry.Direction.West:
@@ -441,7 +441,7 @@ namespace UMLDes.GUI {
 			first.role = create_label( role1 != null ? role1 : "Left", -1, 0f, first.hyphen_dir, 0, role1 == null );
 			second.role = create_label( role2 != null ? role2 : "Right", -second.number_in_conn-1, 0f, second.hyphen_dir, 0, role2 == null );
 			conn_name = create_label( name != null ? name : "Name", Int32.MaxValue, 0f, Geometry.Direction.Null, 0, name == null );
-			conn_stereo = new GuiBindedStereotype( stereo != null ? stereo : "Usage", this, 0, -15, Int32.MaxValue, 0f, stereo == null );
+			conn_stereo = new GuiBoundStereotype( stereo != null ? stereo : "Usage", this, 0, -15, Int32.MaxValue, 0f, stereo == null );
 			//  4. register children, make them drawable and serializable
 			add_child( first, "LeftPoint" );
 			add_child( second, "RightPoint" );
@@ -451,7 +451,7 @@ namespace UMLDes.GUI {
 			add_child( conn_stereo, "Stereotype" );
 
 			for( int i = 1; i < ipoints.Count - 1; i++ )
-				add_child( ipoints[i] as GuiBinded, null );
+				add_child( ipoints[i] as GuiBound, null );
 
 			//  5. Redraw
 			created = true;
@@ -477,10 +477,10 @@ namespace UMLDes.GUI {
 			second = find_child( "RightPoint" ) as GuiConnectionPoint;
 			first.UpdatePosition( true );
 			second.UpdatePosition( true );
-			first.role = find_child( "Role 1" ) as GuiBindedString;
-			second.role = find_child( "Role 2" ) as GuiBindedString;
-			conn_name = find_child( "Name" ) as GuiBindedString;
-			conn_stereo = find_child( "Stereotype" ) as GuiBindedStereotype;
+			first.role = find_child( "Role 1" ) as GuiBoundString;
+			second.role = find_child( "Role 2" ) as GuiBoundString;
+			conn_name = find_child( "Name" ) as GuiBoundString;
+			conn_stereo = find_child( "Stereotype" ) as GuiBoundStereotype;
 			ipoints.Add( first );
 			for( int i = 1; i < loadtime_iterm_count - 1; i++ )
 				ipoints.Add( find_child( "Point #" + i ) );
@@ -829,7 +829,7 @@ namespace UMLDes.GUI {
 			nav = state.nav;
 
 			for( int i = 1; i < ipoints.Count - 1; i++ )
-				remove_child( ipoints[i] as GuiBinded );
+				remove_child( ipoints[i] as GuiBound );
 			ipoints.Clear();
 
 			ipoints.Add( first );
