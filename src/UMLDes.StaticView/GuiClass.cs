@@ -52,8 +52,9 @@ namespace UMLDes.GUI {
 
 		private void fillHash() {
             hash.Clear();
-			foreach( GuiMember m in members )
-				hash[m.signature] = m;
+			if( members != null ) 
+				foreach( GuiMember m in members )
+					hash[m.signature] = m;
 		}
 
 		private bool isMemberVisible( string signature ) {
@@ -153,9 +154,12 @@ namespace UMLDes.GUI {
 			show_only_public = t.b6;
 			stereo = t.stereo;
 
-			members = new ArrayList( t.members.Count );
-			foreach( GuiMember m in t.members )
-				members.Add( m.Clone() );
+			if( t.members != null ) {
+				members = new ArrayList( t.members.Count );
+				foreach( GuiMember m in t.members )
+					members.Add( m.Clone() );
+			} else
+				members = null;
 			fillHash();
 
 			RefreshContent();
@@ -175,9 +179,12 @@ namespace UMLDes.GUI {
 			t.stereo = stereo;
 			t.hidden = hidden;
 
-			t.members = new ArrayList( members.Count );
-			foreach( GuiMember m in members )
-				t.members.Add( m.Clone() );
+			if( members != null ) {
+				t.members = new ArrayList( members.Count );
+				foreach( GuiMember m in members )
+					t.members.Add( m.Clone() );
+			} else
+				t.members = null;
 			return t;
 		}
 
@@ -275,6 +282,8 @@ namespace UMLDes.GUI {
 					return cl.hash.ContainsKey( memb.signature ) ? ((GuiMember)cl.hash[memb.signature]).visible : true ;
 				}
 				set {
+					if( cl.members == null )
+						cl.members = new ArrayList();
 					if( cl.hash.ContainsKey( memb.signature ) ) {
 						GuiMember mb = (GuiMember)cl.hash[memb.signature];
 						mb.visible = value;
